@@ -9,8 +9,21 @@
 
 namespace F {
 
-class Frame;
-class Access;
+class Frame {
+  // Base class
+};
+
+class Access {
+ public:
+  enum Kind { INFRAME, INREG };
+
+  Kind kind;
+
+  Access(Kind kind) : kind(kind) {}
+
+  // Hints: You may add interface like
+  //        `virtual T::Exp* ToExp(T::Exp* framePtr) const = 0`
+};
 
 class AccessList {
  public:

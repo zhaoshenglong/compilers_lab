@@ -3,7 +3,7 @@
 namespace LIVE {
 
 LiveGraph Liveness(G::Graph<TEMP::Temp>* flowgraph) {
-  // your code here.
+  // TODO: Put your codes here (lab6).
   return LiveGraph();
 }
 

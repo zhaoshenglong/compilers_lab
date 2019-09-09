@@ -2,6 +2,10 @@
 %scanner tiger/lex/scanner.h
 %baseclass-preinclude tiger/absyn/absyn.h
 
+ /*
+  * Please don't modify the lines above.
+  */
+
 %union {
   int ival;
   std::string* sval;
@@ -51,8 +55,12 @@
 
 %start program
 
-%%
 
+ /*
+  * Put your codes here (lab3).
+  */
+
+%%
 program:  exp  {absyn_root = $1;};
 
 exp:

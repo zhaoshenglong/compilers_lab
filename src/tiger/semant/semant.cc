@@ -37,109 +37,135 @@ namespace A {
 
 TY::Ty *SimpleVar::SemAnalyze(VEnvType venv, TEnvType tenv,
                               int labelcount) const {
-  // TODO: Put your codes
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *FieldVar::SemAnalyze(VEnvType venv, TEnvType tenv,
                              int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *SubscriptVar::SemAnalyze(VEnvType venv, TEnvType tenv,
                                  int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *VarExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *NilExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *IntExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *StringExp::SemAnalyze(VEnvType venv, TEnvType tenv,
                               int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *CallExp::SemAnalyze(VEnvType venv, TEnvType tenv,
                             int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *OpExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *RecordExp::SemAnalyze(VEnvType venv, TEnvType tenv,
                               int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *SeqExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *AssignExp::SemAnalyze(VEnvType venv, TEnvType tenv,
                               int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *IfExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
-  TY::Ty *testTy = test->SemAnalyze(venv, tenv, labelcount);
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *WhileExp::SemAnalyze(VEnvType venv, TEnvType tenv,
                              int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *ForExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *BreakExp::SemAnalyze(VEnvType venv, TEnvType tenv,
                              int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *LetExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *ArrayExp::SemAnalyze(VEnvType venv, TEnvType tenv,
                              int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *VoidExp::SemAnalyze(VEnvType venv, TEnvType tenv,
                             int labelcount) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 void FunctionDec::SemAnalyze(VEnvType venv, TEnvType tenv,
-                             int labelcount) const {}
+                             int labelcount) const {
+  // TODO: Put your codes here (lab4).
+}
 
-void VarDec::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {}
+void VarDec::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
+}
 
-void TypeDec::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {}
+void TypeDec::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
+  // TODO: Put your codes here (lab4).
+}
 
 TY::Ty *NameTy::SemAnalyze(TEnvType tenv) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *RecordTy::SemAnalyze(TEnvType tenv) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *ArrayTy::SemAnalyze(TEnvType tenv) const {
+  // TODO: Put your codes here (lab4).
   return TY::VoidTy::Instance();
 }
 

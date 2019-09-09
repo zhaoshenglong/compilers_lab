@@ -28,7 +28,6 @@ namespace AS {
 static std::string format(std::string assem, TEMP::TempList* dst,
                           TEMP::TempList* src, Targets* jumps, TEMP::Map* m) {
   std::string result;
-  // fprintf(stdout, "a format: assem=%s, dst=%p, src=%p\n", assem, dst, src);
   for (int i = 0; i < assem.size(); i++) {
     char ch = assem.at(i);
     if (ch == '`') {
@@ -83,7 +82,6 @@ void MoveInstr::Print(FILE* out, TEMP::Map* m) const {
     if (srcpos != std::string::npos) {
       std::size_t dstpos = this->assem.find_first_of('%', srcpos + 1);
       if (dstpos != std::string::npos) {
-        // fprintf(out, "src: %s; dst: %s\n", src, dst);
         if ((this->assem[srcpos + 1] == this->assem[dstpos + 1]) &&
             (this->assem[srcpos + 2] == this->assem[dstpos + 2]) &&
             (this->assem[srcpos + 3] == this->assem[dstpos + 3]))

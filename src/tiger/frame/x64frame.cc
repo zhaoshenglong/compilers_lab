@@ -4,15 +4,8 @@
 
 namespace F {
 
-class Frame {};
-
-class Access {
- public:
-  enum Kind { INFRAME, INREG };
-
-  Kind kind;
-
-  Access(Kind kind) : kind(kind) {}
+class X64Frame : public Frame {
+  // TODO: Put your codes here (lab6).
 };
 
 class InFrameAccess : public Access {

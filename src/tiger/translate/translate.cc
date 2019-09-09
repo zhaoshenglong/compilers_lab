@@ -135,7 +135,10 @@ Level *Outermost() {
   return lv;
 }
 
-F::FragList *TranslateProgram(A::Exp *root) { return nullptr; }
+F::FragList *TranslateProgram(A::Exp *root) {
+  // TODO: Put your codes here (lab5).
+  return nullptr;
+}
 
 }  // namespace TR
 
@@ -144,140 +147,167 @@ namespace A {
 TR::ExpAndTy SimpleVar::Translate(S::Table<E::EnvEntry> *venv,
                                   S::Table<TY::Ty> *tenv, TR::Level *level,
                                   TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy FieldVar::Translate(S::Table<E::EnvEntry> *venv,
                                  S::Table<TY::Ty> *tenv, TR::Level *level,
                                  TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy SubscriptVar::Translate(S::Table<E::EnvEntry> *venv,
                                      S::Table<TY::Ty> *tenv, TR::Level *level,
                                      TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy VarExp::Translate(S::Table<E::EnvEntry> *venv,
                                S::Table<TY::Ty> *tenv, TR::Level *level,
                                TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy NilExp::Translate(S::Table<E::EnvEntry> *venv,
                                S::Table<TY::Ty> *tenv, TR::Level *level,
                                TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy IntExp::Translate(S::Table<E::EnvEntry> *venv,
                                S::Table<TY::Ty> *tenv, TR::Level *level,
                                TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy StringExp::Translate(S::Table<E::EnvEntry> *venv,
                                   S::Table<TY::Ty> *tenv, TR::Level *level,
                                   TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy CallExp::Translate(S::Table<E::EnvEntry> *venv,
                                 S::Table<TY::Ty> *tenv, TR::Level *level,
                                 TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy OpExp::Translate(S::Table<E::EnvEntry> *venv,
                               S::Table<TY::Ty> *tenv, TR::Level *level,
                               TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy RecordExp::Translate(S::Table<E::EnvEntry> *venv,
                                   S::Table<TY::Ty> *tenv, TR::Level *level,
                                   TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy SeqExp::Translate(S::Table<E::EnvEntry> *venv,
                                S::Table<TY::Ty> *tenv, TR::Level *level,
                                TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy AssignExp::Translate(S::Table<E::EnvEntry> *venv,
                                   S::Table<TY::Ty> *tenv, TR::Level *level,
                                   TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy IfExp::Translate(S::Table<E::EnvEntry> *venv,
                               S::Table<TY::Ty> *tenv, TR::Level *level,
-                              TEMP::Label *label) const {}
+                              TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
+  return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
+}
 
 TR::ExpAndTy WhileExp::Translate(S::Table<E::EnvEntry> *venv,
                                  S::Table<TY::Ty> *tenv, TR::Level *level,
                                  TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy ForExp::Translate(S::Table<E::EnvEntry> *venv,
                                S::Table<TY::Ty> *tenv, TR::Level *level,
                                TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy BreakExp::Translate(S::Table<E::EnvEntry> *venv,
                                  S::Table<TY::Ty> *tenv, TR::Level *level,
                                  TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy LetExp::Translate(S::Table<E::EnvEntry> *venv,
                                S::Table<TY::Ty> *tenv, TR::Level *level,
                                TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy ArrayExp::Translate(S::Table<E::EnvEntry> *venv,
                                  S::Table<TY::Ty> *tenv, TR::Level *level,
                                  TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::ExpAndTy VoidExp::Translate(S::Table<E::EnvEntry> *venv,
                                 S::Table<TY::Ty> *tenv, TR::Level *level,
                                 TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return TR::ExpAndTy(nullptr, TY::VoidTy::Instance());
 }
 
 TR::Exp *FunctionDec::Translate(S::Table<E::EnvEntry> *venv,
                                 S::Table<TY::Ty> *tenv, TR::Level *level,
                                 TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return nullptr;
 }
 
 TR::Exp *VarDec::Translate(S::Table<E::EnvEntry> *venv, S::Table<TY::Ty> *tenv,
                            TR::Level *level, TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return nullptr;
 }
 
 TR::Exp *TypeDec::Translate(S::Table<E::EnvEntry> *venv, S::Table<TY::Ty> *tenv,
                             TR::Level *level, TEMP::Label *label) const {
+  // TODO: Put your codes here (lab5).
   return nullptr;
 }
 
 TY::Ty *NameTy::Translate(S::Table<TY::Ty> *tenv) const {
+  // TODO: Put your codes here (lab5).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *RecordTy::Translate(S::Table<TY::Ty> *tenv) const {
+  // TODO: Put your codes here (lab5).
   return TY::VoidTy::Instance();
 }
 
 TY::Ty *ArrayTy::Translate(S::Table<TY::Ty> *tenv) const {
+  // TODO: Put your codes here (lab5).
   return TY::VoidTy::Instance();
 }
 

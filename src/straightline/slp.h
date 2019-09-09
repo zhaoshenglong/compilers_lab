@@ -64,7 +64,7 @@ class PrintStm : public Stm {
 class Exp {
  public:
   Exp(ExpKind kind) : kind(kind) {}
-  // TODO: you'll have to add some definitions here.
+  // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`,
   //        and ` IntAndTable *Interp(Table *)`
 
@@ -75,7 +75,7 @@ class Exp {
 class IdExp : public Exp {
  public:
   IdExp(std::string id) : Exp(ID_EXP), id(id) {}
-  // TODO: you'll have to add some definitions here.
+  // TODO: you'll have to add some definitions here (lab1).
 
 
  private:
@@ -95,7 +95,7 @@ class OpExp : public Exp {
  public:
   OpExp(Exp *left, BinOp oper, Exp *right)
       : Exp(OP_EXP), left(left), oper(oper), right(right) {}
-  // TODO: you'll have to add some definitions here.
+  // TODO: you'll have to add some definitions here (lab1).
 
  private:
   Exp *left;
@@ -106,7 +106,7 @@ class OpExp : public Exp {
 class EseqExp : public Exp {
  public:
   EseqExp(Stm *stm, Exp *exp) : Exp(ESEQ_EXP), stm(stm), exp(exp) {}
-  // TODO: you'll have to add some definitions here.
+  // TODO: you'll have to add some definitions here (lab1).
 
  private:
   Stm *stm;
@@ -116,7 +116,7 @@ class EseqExp : public Exp {
 class ExpList {
  public:
   ExpList(ExpListKind kind) : kind(kind) {}
- // TODO: you'll have to add some definitions here.
+ // TODO: you'll have to add some definitions here (lab1).
  // Hints: You may add interfaces like `int MaxArgs()`, `int NumExps()`,
  //        and ` IntAndTable *Interp(Table *)`
 
@@ -129,7 +129,7 @@ class PairExpList : public ExpList {
  public:
   PairExpList(Exp *head, ExpList *tail)
       : ExpList(PAIR_EXP_LIST), head(head), tail(tail) {}
-  // TODO: you'll have to add some definitions here.
+  // TODO: you'll have to add some definitions here (lab1).
 
  private:
   Exp *head;
@@ -139,7 +139,7 @@ class PairExpList : public ExpList {
 class LastExpList : public ExpList {
  public:
   LastExpList(Exp *last) : ExpList(LAST_EXP_LIST), last(last) {}
-  // TODO: you'll have to add some definitions here.
+  // TODO: you'll have to add some definitions here (lab1).
 
  private:
   Exp *last;

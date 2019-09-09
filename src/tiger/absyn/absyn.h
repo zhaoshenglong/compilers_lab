@@ -63,11 +63,11 @@ class Var {
   Var(Kind kind, int pos) : kind(kind), pos(pos) {}
   virtual void Print(FILE *out, int d) const = 0;
 
-  // For lab4
+  // Hint: This function will be used in lab4
   virtual TY::Ty *SemAnalyze(S::Table<E::EnvEntry> *venv,
                              S::Table<TY::Ty> *tenv, int labelcount) const = 0;
 
-  // For lab5
+  // Hint: This function will be used in lab5
   virtual TR::ExpAndTy Translate(S::Table<E::EnvEntry> *venv,
                                  S::Table<TY::Ty> *tenv, TR::Level *level,
                                  TEMP::Label *label) const = 0;
@@ -150,11 +150,11 @@ class Exp {
   Exp(Kind kind, int pos) : kind(kind), pos(pos) {}
   virtual void Print(FILE *out, int d) const = 0;
 
-  // For lab4
+  // Hint: This function will be used in lab4
   virtual TY::Ty *SemAnalyze(S::Table<E::EnvEntry> *venv,
                              S::Table<TY::Ty> *tenv, int labelcount) const = 0;
 
-  // For lab5
+  // Hint: This function will be used in lab5
   virtual TR::ExpAndTy Translate(S::Table<E::EnvEntry> *venv,
                                  S::Table<TY::Ty> *tenv, TR::Level *level,
                                  TEMP::Label *label) const = 0;
@@ -413,11 +413,11 @@ class Dec {
   Dec(Kind kind, int pos) : kind(kind), pos(pos) {}
   virtual void Print(FILE *out, int d) const = 0;
 
-  // For lab4
+  // Hint: This function will be used in lab4
   virtual void SemAnalyze(S::Table<E::EnvEntry> *venv, S::Table<TY::Ty> *tenv,
                           int labelcount) const = 0;
 
-  // For lab5
+  // Hint: This function will be used in lab5
   virtual TR::Exp *Translate(S::Table<E::EnvEntry> *venv,
                              S::Table<TY::Ty> *tenv, TR::Level *level,
                              TEMP::Label *label) const = 0;
