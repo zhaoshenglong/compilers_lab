@@ -5,6 +5,9 @@ parserbase.h
 parse.cc
 *.tig.s
 
+# tar files
+*.tar.gz
+
 # CMake build directories
 build/
 
