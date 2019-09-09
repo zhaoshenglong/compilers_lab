@@ -3,10 +3,10 @@
 
 #include "straightline/slp.h"
 
-A::Stm *prog(void);
-A::Stm *prog(void);
-A::Stm *prog_prog(void);
-A::Stm *right_prog(void);
-A::Stm *error_prog(void);
+A::Stm *prog();
+A::Stm *prog();
+A::Stm *prog_prog();
+A::Stm *right_prog();
+A::Stm *error_prog();
 
 #endif  // STRAIGHTLINE_PROG1_H_

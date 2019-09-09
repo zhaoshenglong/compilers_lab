@@ -1,7 +1,7 @@
 #include "straightline/prog1.h"
 
 // a = 5 + 3; b = (print(a, a-1), 10*a); print b;
-A::Stm *prog(void) {
+A::Stm *prog() {
   // a = 5 + 3;
   A::Stm *assStm1 = new A::AssignStm(
       "a", new A::OpExp(new A::NumExp(5), A::PLUS, new A::NumExp(3)));
@@ -24,7 +24,7 @@ A::Stm *prog(void) {
 
 // a = 5 + 3; b = (print(a, a-1), 10*a); print b;
 // a = 5 + b; b = (print(a, a, a-1), 10*a); print b;
-A::Stm *prog_prog(void) {
+A::Stm *prog_prog() {
   // a = 5 + 3; b = (print(a, a-1), 10*a); print b;
   A::Stm *stm1 = prog();
 
@@ -55,7 +55,7 @@ A::Stm *prog_prog(void) {
 // a = 5 + 3; b = (print(a, a-1), 10*a); print b;
 // a = 5 + b; b = (print(a, a, a-1), 10*a); print b;
 // a = (a = a+b, a);
-A::Stm *right_prog(void) {
+A::Stm *right_prog() {
   A::Stm *stm1 = prog_prog();
   return new A::CompoundStm(
       stm1,
