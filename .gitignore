@@ -1,3 +1,10 @@
+# flexc++ and bisonc++ generated files
+lex.cc
+scannerbase.h
+parserbase.h
+parse.cc
+*.tig.s
+
 # CMake build directories
 build/
 
