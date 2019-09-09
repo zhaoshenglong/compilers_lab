@@ -1,15 +1,15 @@
  letExp(
   decList(
    typeDec(
-    nametyList(
-     namety(any,
+    nameAndTyList(
+     nameAndTy(any,
       recordTy(
        fieldList(
         field(any,
          int,
          TRUE),
         fieldList()))),
-     nametyList())),
+     nameAndTyList())),
    decList(
     varDec(buffer,
      callExp(getchar,
@@ -143,8 +143,8 @@
        fundecList())),
      decList(
       typeDec(
-       nametyList(
-        namety(list,
+       nameAndTyList(
+        nameAndTy(list,
          recordTy(
           fieldList(
            field(first,
@@ -155,7 +155,7 @@
              list,
              TRUE),
             fieldList())))),
-        nametyList())),
+        nameAndTyList())),
       decList(
        functionDec(
         fundecList(

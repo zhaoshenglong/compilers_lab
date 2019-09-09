@@ -1,8 +1,8 @@
  letExp(
   decList(
    typeDec(
-    nametyList(
-     namety(rectype,
+    nameAndTyList(
+     nameAndTy(rectype,
       recordTy(
        fieldList(
         field(name,
@@ -13,7 +13,7 @@
           int,
           TRUE),
          fieldList())))),
-     nametyList())),
+     nameAndTyList())),
    decList(
     varDec(a,
      nilExp(),

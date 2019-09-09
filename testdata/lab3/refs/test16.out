@@ -1,19 +1,19 @@
  letExp(
   decList(
    typeDec(
-    nametyList(
-     namety(a,
+    nameAndTyList(
+     nameAndTy(a,
       nameTy(c)),
-     nametyList(
-      namety(b,
+     nameAndTyList(
+      nameAndTy(b,
        nameTy(a)),
-      nametyList(
-       namety(c,
+      nameAndTyList(
+       nameAndTy(c,
         nameTy(d)),
-       nametyList(
-        namety(d,
+       nameAndTyList(
+        nameAndTy(d,
          nameTy(a)),
-        nametyList()))))),
+        nameAndTyList()))))),
    decList()),
   seqExp(
    expList(

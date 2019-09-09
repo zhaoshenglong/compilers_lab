@@ -5,10 +5,10 @@
     TRUE),
    decList(
     typeDec(
-     nametyList(
-      namety(intArray,
+     nameAndTyList(
+      nameAndTy(intArray,
        arrayTy(int)),
-      nametyList())),
+      nameAndTyList())),
     decList(
      varDec(row,
       arrayExp(intArray,

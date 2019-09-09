@@ -1,13 +1,13 @@
  letExp(
   decList(
    typeDec(
-    nametyList(
-     namety(arrtype1,
+    nameAndTyList(
+     nameAndTy(arrtype1,
       arrayTy(int)),
-     nametyList(
-      namety(arrtype2,
+     nameAndTyList(
+      nameAndTy(arrtype2,
        arrayTy(int)),
-      nametyList()))),
+      nameAndTyList()))),
    decList(
     varDec(arr1,
      arrtype1,

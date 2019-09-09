@@ -1,8 +1,8 @@
  letExp(
   decList(
    typeDec(
-    nametyList(
-     namety(tree,
+    nameAndTyList(
+     nameAndTy(tree,
       recordTy(
        fieldList(
         field(key,
@@ -13,7 +13,7 @@
           treelist,
           TRUE),
          fieldList())))),
-     nametyList())),
+     nameAndTyList())),
    decList(
     varDec(d,
      int,
@@ -21,8 +21,8 @@
      TRUE),
     decList(
      typeDec(
-      nametyList(
-       namety(treelist,
+      nameAndTyList(
+       nameAndTy(treelist,
         recordTy(
          fieldList(
           field(hd,
@@ -33,7 +33,7 @@
             treelist,
             TRUE),
            fieldList())))),
-       nametyList())),
+       nameAndTyList())),
      decList()))),
   seqExp(
    expList(

@@ -14,10 +14,10 @@
      fundecList())),
    decList(
     typeDec(
-     nametyList(
-      namety(t,
+     nameAndTyList(
+      nameAndTy(t,
        nameTy(int)),
-      nametyList())),
+      nameAndTyList())),
     decList(
      functionDec(
       fundecList(

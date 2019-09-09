@@ -1,11 +1,11 @@
  letExp(
   decList(
    typeDec(
-    nametyList(
-     namety(arrtype1,
+    nameAndTyList(
+     nameAndTy(arrtype1,
       arrayTy(int)),
-     nametyList(
-      namety(rectype1,
+     nameAndTyList(
+      nameAndTy(rectype1,
        recordTy(
         fieldList(
          field(name,
@@ -24,11 +24,11 @@
              int,
              TRUE),
             fieldList())))))),
-      nametyList(
-       namety(arrtype2,
+      nameAndTyList(
+       nameAndTy(arrtype2,
         arrayTy(rectype1)),
-       nametyList(
-        namety(rectype2,
+       nameAndTyList(
+        nameAndTy(rectype2,
          recordTy(
           fieldList(
            field(name,
@@ -39,10 +39,10 @@
              arrtype1,
              TRUE),
             fieldList())))),
-        nametyList(
-         namety(arrtype3,
+        nameAndTyList(
+         nameAndTy(arrtype3,
           arrayTy(string)),
-         nametyList())))))),
+         nameAndTyList())))))),
    decList(
     varDec(arr1,
      arrayExp(arrtype1,

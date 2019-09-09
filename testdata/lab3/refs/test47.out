@@ -1,20 +1,20 @@
  letExp(
   decList(
    typeDec(
-    nametyList(
-     namety(a,
+    nameAndTyList(
+     nameAndTy(a,
       nameTy(int)),
-     nametyList())),
+     nameAndTyList())),
    decList(
     varDec(b,
      intExp(4),
      TRUE),
     decList(
      typeDec(
-      nametyList(
-       namety(a,
+      nameAndTyList(
+       nameAndTy(a,
         nameTy(string)),
-       nametyList())),
+       nameAndTyList())),
      decList()))),
   seqExp(
    expList(
