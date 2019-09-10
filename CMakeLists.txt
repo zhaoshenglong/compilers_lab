@@ -13,7 +13,7 @@ endif()
 
 find_program(BISONCPP bisonc++)
 if(NOT BISONCPP)
-    message(FATAL_ERROR "Program bison++ not found!")
+    message(FATAL_ERROR "Program bisonc++ not found!")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -21,7 +21,6 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(src)
 include_directories(src/tiger/lex)
 include_directories(src/tiger/parse)
-
 
 file(GLOB SLP_SOURCES "src/straightline/*.cc")
 
@@ -31,8 +30,6 @@ file(GLOB TIGER_SOURCES
   "src/tiger/errormsg/*.cc"
   "src/tiger/env/*.cc"
   "src/tiger/escape/*.cc"
-  "src/tiger/lex/*.cc"
-  "src/tiger/parse/*.cc"
   "src/tiger/semant/*.cc"
   "src/tiger/frame/*.cc"
   "src/tiger/translate/*.cc"
@@ -42,35 +39,56 @@ file(GLOB TIGER_SOURCES
   "src/tiger/regalloc/*.cc"
 )
 
-add_custom_target(lex_files
-    COMMAND  flexc++ tiger.lex
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/tiger/lex
+SET(TIGER_LEX_PARSE_SOURCES
+   ${PROJECT_SOURCE_DIR}/src/tiger/lex/lex.cc
+   ${PROJECT_SOURCE_DIR}/src/tiger/lex/scannerbase.h
+   ${PROJECT_SOURCE_DIR}/src/tiger/parse/parse.cc
+   ${PROJECT_SOURCE_DIR}/src/tiger/parse/parserbase.h
 )
 
-add_custom_target(parse_files
-  COMMAND  bisonc++ tiger.y
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/tiger/parse
+SET_SOURCE_FILES_PROPERTIES(${TIGER_LEX_PARSE_SOURCES} GENERATED)
+
+# Create custom command for flexc++
+add_custom_command(
+   OUTPUT ${PROJECT_SOURCE_DIR}/src/tiger/lex/lex.cc ${PROJECT_SOURCE_DIR}/src/tiger/lex/scannerbase.h
+   COMMAND flexc++ tiger.lex
+   DEPENDS  ${PROJECT_SOURCE_DIR}/src/tiger/lex/tiger.lex
+   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/tiger/lex
+)
+
+# Create custom command for bisonc++ (note the DEPENDS)
+add_custom_command(
+   OUTPUT ${PROJECT_SOURCE_DIR}/src/tiger/parse/parse.cc ${PROJECT_SOURCE_DIR}/src/tiger/parse/parserbase.h
+   COMMAND bisonc++ tiger.y
+   DEPENDS ${PROJECT_SOURCE_DIR}/src/tiger/parse/tiger.y
+   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/tiger/parse
+)
+
+# Create target for the lexer and the parser
+add_custom_target(
+   lex_parse_sources
+   DEPENDS ${TIGER_LEX_PARSE_SOURCES}
 )
 
 # lab 1
 add_executable(test_slp ${SLP_SOURCES})
 
 # lab 2
-add_executable(test_lex  "src/tiger/main/test_lex.cc" ${TIGER_SOURCES})
-add_dependencies(test_lex lex_files parse_files)
+add_executable(test_lex  "src/tiger/main/test_lex.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+add_dependencies(test_lex lex_parse_sources)
 
 # lab 3
-add_executable(test_parse  "src/tiger/main/test_parse.cc" ${TIGER_SOURCES})
-add_dependencies(test_parse lex_files parse_files)
+add_executable(test_parse  "src/tiger/main/test_parse.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+add_dependencies(test_parse lex_parse_sources)
 
 # lab 4
-add_executable(test_semant  "src/tiger/main/test_semant.cc" ${TIGER_SOURCES})
-add_dependencies(test_semant lex_files parse_files)
+add_executable(test_semant  "src/tiger/main/test_semant.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+add_dependencies(test_semant lex_parse_sources)
 
 # lab 5
-add_executable(test_translate  "src/tiger/main/test_translate.cc" ${TIGER_SOURCES})
-add_dependencies(test_translate lex_files parse_files)
+add_executable(test_translate  "src/tiger/main/test_translate.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+add_dependencies(test_translate lex_parse_sources)
 
 # lab 6
-add_executable(tiger-compiler  "src/tiger/main/main.cc" ${TIGER_SOURCES})
-add_dependencies(tiger-compiler lex_files parse_files)
+add_executable(tiger-compiler  "src/tiger/main/main.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+add_dependencies(tiger-compiler lex_parse_sources)
