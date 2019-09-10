@@ -11,6 +11,7 @@
     - [Ubuntu](#ubuntu)
     - [MacOS or Windows](#macos-or-windows)
   - [Compiling](#compiling)
+  - [Debugging](#debugging)
   - [Grading Your Labs](#grading-your-labs)
   - [Submitting Your Labs](#submitting-your-labs)
 
@@ -76,6 +77,15 @@ mkdir build
 cd build
 cmake ..
 make test_xxx  # e.g. `make test_slp`
+```
+
+## Debugging
+
+```bash
+# in build direcotry
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make test_xxx # e.g. `make test_slp`
+gdb test_xxx # e.g. `gdb test_slp`
 ```
 
 ## Grading Your Labs
