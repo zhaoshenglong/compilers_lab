@@ -66,7 +66,7 @@ For students who use MacOS or Windows, we provide you a Docker image which has a
 3. Run a docker container and mount the lab directory on it.
 
     ```bash
-    docker run -it -v /path/to/tiger-compiler-2019-fall:/home/stu/tiger-compiler-2019-fall se302/tigerlabs_env:latest /bin/bash
+    docker run -it --privileged -v /path/to/tiger-compiler-2019-fall:/home/stu/tiger-compiler-2019-fall se302/tigerlabs_env:latest /bin/bash
     cd tiger-compiler-2019-fall
     ```
 
