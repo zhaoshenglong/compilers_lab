@@ -14,6 +14,7 @@
   - [Debugging](#debugging)
   - [Grading Your Labs](#grading-your-labs)
   - [Submitting Your Labs](#submitting-your-labs)
+  - [FAQ](#faq)
 
 ## Overview
 
@@ -47,7 +48,7 @@ Although these libraries are not needed in lab1, you have to install them before
 ### Ubuntu
 
 ```bash
-sudo apt install cmake g++ gcc gdb flexc++ bisonc++
+sudo apt install git tar cmake g++ gcc gdb flexc++ bisonc++
 ```
 
 ### MacOS or Windows
@@ -63,14 +64,16 @@ For students who use MacOS or Windows, we provide you a Docker image which has a
     docker build -t se302/tigerlabs_env .
     ```
 
-3. Run a docker container and mount the lab directory on it.
+3. Run a docker container and mount the lab directory on it. You should replace `/path/to/tiger-compiler-2019-fall` to the path where you clone the lab repository on your computer.
 
     ```bash
-    docker run -it --privileged -v /path/to/tiger-compiler-2019-fall:/home/stu/tiger-compiler-2019-fall se302/tigerlabs_env:latest /bin/bash
+    docker run -it -v /path/to/tiger-compiler-2019-fall:/home/stu/tiger-compiler-2019-fall se302/tigerlabs_env:latest /bin/bash
     cd tiger-compiler-2019-fall
     ```
 
 ## Compiling
+
+There are six makeable targets in total, including `test_slp`, `test_lex`, `test_parse`, `test_semant`, `test_translate`, and `tiger-compiler`.
 
 ```bash
 mkdir build
@@ -100,3 +103,19 @@ gdb test_xxx # e.g. `gdb test_slp`
 ```bash
 ./handin.sh
 ```
+
+## FAQ
+
+1. Some students who use Windows OS may get the following output when they run the grading scripts in their docker containers. This is because Git For Windows automatically converts the LF (Unix newline)to CRLF(Windows newline) for all the files that you clone or commit and Linux bash won't execute the scripts that use CRLF newlines.
+
+    ```bash
+    bash: ./gradelab1.sh: /bin/bash^M: bad interpreter: No such file or directory
+    ```
+
+    ***Solution:*** Add some configs to the `.gitconfig` file in your user directory as below. For example, if your user name is foo, your user directory should be `C:\Users\foo`. For more information, you can refer to this [website](https://github.com/cssmagic/blog/issues/22).
+
+    ```txt
+    [core]
+        autocrlf = false
+        safecrlf = true
+    ```
