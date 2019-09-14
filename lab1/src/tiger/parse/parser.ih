@@ -1,0 +1,29 @@
+#include "tiger/parse/parser.h"
+
+inline void Parser::error() {
+  errormsg.Error(errormsg.tokPos, "syntax error");
+  exit(1);
+}
+
+inline int Parser::lex() {
+  int token = d_scanner.lex();
+  switch (token) {
+    case Parser::ID:
+      d_val__.sym = S::Symbol::UniqueSymbol(d_scanner.matched());
+      break;
+    case Parser::STRING:
+      string_pool_.push_back(d_scanner.matched());
+      d_val__.sval = &string_pool_.back();
+      break;
+    case Parser::INT:
+      d_val__.ival = std::stoi(d_scanner.matched());
+      break;
+    default:
+      break;
+  }
+  return token;
+}
+
+inline void Parser::print() { print__(); }
+
+inline void Parser::exceptionHandler(std::exception const &exc) { throw; }
