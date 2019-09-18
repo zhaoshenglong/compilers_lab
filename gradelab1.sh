@@ -39,7 +39,7 @@ if [ -s .tmp.txt ]; then
 	cat .tmp.txt
 	doReap
 	echo "SCORE: 0"
-	exit 0
+	exit 1
 fi
 
 doReap

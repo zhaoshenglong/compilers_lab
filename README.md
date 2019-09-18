@@ -34,11 +34,19 @@ The Tiger Compiler Labs are not perfect, but we have tried our best and spent a 
 
 ## Getting Newly Released Labs
 
-```bash
-git clone https://ipads.se.sjtu.edu.cn:1312/lab/tiger-compiler-2019-fall.git
-```
+1. The first thing you have to do is to clone the current lab repository by issuing the following commands on the command line:
 
-**Note:** We may update the framework codes later so you may need to do some code merging.
+   ```bash
+   git clone https://ipads.se.sjtu.edu.cn:1312/lab/tiger-compiler-2019-fall.git
+   ```
+
+2. Once a lab is released, pull in the changes from your simpledb directory:
+
+   ```bash
+   git pull origin https://ipads.se.sjtu.edu.cn:1312/lab/tiger-compiler-2019-fall.git master
+   ```
+
+**Note:** You may need to do some code merging work.
 
 ## Installing Dependencies
 
@@ -100,9 +108,18 @@ gdb test_xxx # e.g. `gdb test_slp`
 
 ## Submitting Your Labs
 
-```bash
-./handin.sh
-```
+1. First commit your codes.
+
+   ```bash
+   git add somefiles
+   git commit -m "A message!"
+   ```
+
+2. Pack your codes, rename the packed file, and upload it!
+
+   ```bash
+   ./handin.sh
+   ```
 
 ## FAQ
 

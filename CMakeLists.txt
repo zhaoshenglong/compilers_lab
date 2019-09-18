@@ -16,7 +16,7 @@ if(NOT BISONCPP)
     message(FATAL_ERROR "Program bisonc++ not found!")
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 
 include_directories(src)
 include_directories(src/tiger/lex)
