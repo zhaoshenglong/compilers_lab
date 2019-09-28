@@ -15,7 +15,19 @@ mkdir -p build
 cd build
 doReap
 ln -s ../testdata/lab1/testcases testcases
+if [[ $? != 0 ]]; then
+	echo "[-_-]$ite: Link Error"
+	echo "TOTAL SCORE: 0"
+	exit 123
+fi
+
 ln -s ../testdata/lab1/refs refs
+if [[ $? != 0 ]]; then
+	echo "[-_-]$ite: Link Error"
+	echo "TOTAL SCORE: 0"
+	exit 123
+fi
+
 cmake .. >&/dev/null
 make test_slp -j >/dev/null
 if [[ $? != 0 ]]; then

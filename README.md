@@ -8,7 +8,7 @@
   - [Difference Between C Labs and C++ Labs](#difference-between-c-labs-and-c-labs)
   - [Getting Newly Released Labs](#getting-newly-released-labs)
   - [Installing Dependencies](#installing-dependencies)
-    - [Ubuntu](#ubuntu)
+    - [Ubuntu18.04](#ubuntu1804)
     - [MacOS or Windows](#macos-or-windows)
   - [Compiling](#compiling)
   - [Debugging](#debugging)
@@ -53,7 +53,7 @@ The Tiger Compiler Labs are not perfect, but we have tried our best and spent a 
 flexc++ and bisonc++ will be needed in lab2 and later.
 Although these libraries are not needed in lab1, you have to install them before you start lab1.
 
-### Ubuntu
+### Ubuntu18.04
 
 ```bash
 sudo apt install git tar cmake g++ gcc gdb flexc++ bisonc++
