@@ -9,7 +9,7 @@
   - [Getting Newly Released Labs](#getting-newly-released-labs)
   - [Installing Dependencies](#installing-dependencies)
     - [Ubuntu18.04](#ubuntu1804)
-    - [MacOS or Windows](#macos-or-windows)
+    - [MacOS, Windows Professional, Ubuntu16.04, and other Linux Distributions](#macos-windows-professional-ubuntu1604-and-other-linux-distributions)
   - [Compiling](#compiling)
   - [Debugging](#debugging)
   - [Grading Your Labs](#grading-your-labs)
@@ -46,7 +46,7 @@ The Tiger Compiler Labs are not perfect, but we have tried our best and spent a 
    git pull origin https://ipads.se.sjtu.edu.cn:1312/lab/tiger-compiler-2019-fall.git master
    ```
 
-**Note:** You may need to do some code merging work.
+**Notice:** You may need to do some code merging work.
 
 ## Installing Dependencies
 
@@ -59,9 +59,11 @@ Although these libraries are not needed in lab1, you have to install them before
 sudo apt install git tar cmake g++ gcc gdb flexc++ bisonc++
 ```
 
-### MacOS or Windows
+**Notice:** This series of labs now only support Ubuntu18.04. For those who use **Ubuntu16.04**, you still need to use Docker to build and run your labs.
 
-For students who use MacOS or Windows, we provide you a Docker image which has already installed all the dependencies. You can compile your codes directly in this Docker image.
+### MacOS, Windows Professional, Ubuntu16.04, and other Linux Distributions
+
+We provide you a Docker image which has already installed all the dependencies. You can compile your codes directly in this Docker image.
 
 1. Install [Docker](https://docs.docker.com/).
 
@@ -78,6 +80,8 @@ For students who use MacOS or Windows, we provide you a Docker image which has a
     docker run -it --privileged -v /path/to/tiger-compiler-2019-fall:/home/stu/tiger-compiler-2019-fall se302/tigerlabs_env:latest /bin/bash
     cd tiger-compiler-2019-fall
     ```
+
+**Notice:** Please do not use Docker Toolbox. For those who Windows Home, you still use virtual machine instead and install a Ubuntu18.04 image.
 
 ## Compiling
 
