@@ -8,8 +8,8 @@
   - [Difference Between C Labs and C++ Labs](#difference-between-c-labs-and-c-labs)
   - [Getting Newly Released Labs](#getting-newly-released-labs)
   - [Installing Dependencies](#installing-dependencies)
-    - [Ubuntu](#ubuntu)
-    - [MacOS or Windows](#macos-or-windows)
+    - [Ubuntu18.04](#ubuntu1804)
+    - [MacOS, Windows Professional, Ubuntu16.04, and other Linux Distributions](#macos-windows-professional-ubuntu1604-and-other-linux-distributions)
   - [Compiling](#compiling)
   - [Debugging](#debugging)
   - [Grading Your Labs](#grading-your-labs)
@@ -34,26 +34,36 @@ The Tiger Compiler Labs are not perfect, but we have tried our best and spent a 
 
 ## Getting Newly Released Labs
 
-```bash
-git clone https://ipads.se.sjtu.edu.cn:1312/lab/tiger-compiler-2019-fall.git
-```
+1. The first thing you have to do is to clone the current lab repository by issuing the following commands on the command line:
 
-**Note:** We may update the framework codes later so you may need to do some code merging.
+   ```bash
+   git clone https://ipads.se.sjtu.edu.cn:1312/lab/tiger-compiler-2019-fall.git
+   ```
+
+2. Once a lab is released, pull in the changes from your simpledb directory:
+
+   ```bash
+   git pull origin https://ipads.se.sjtu.edu.cn:1312/lab/tiger-compiler-2019-fall.git master
+   ```
+
+**Notice:** You may need to do some code merging work.
 
 ## Installing Dependencies
 
 flexc++ and bisonc++ will be needed in lab2 and later.
 Although these libraries are not needed in lab1, you have to install them before you start lab1.
 
-### Ubuntu
+### Ubuntu18.04
 
 ```bash
 sudo apt install git tar cmake g++ gcc gdb flexc++ bisonc++
 ```
 
-### MacOS or Windows
+**Notice:** This series of labs now only support Ubuntu18.04. For those who use **Ubuntu16.04**, you still need to use Docker to build and run your labs.
 
-For students who use MacOS or Windows, we provide you a Docker image which has already installed all the dependencies. You can compile your codes directly in this Docker image.
+### MacOS, Windows Professional, Ubuntu16.04, and other Linux Distributions
+
+We provide you a Docker image which has already installed all the dependencies. You can compile your codes directly in this Docker image.
 
 1. Install [Docker](https://docs.docker.com/).
 
@@ -70,6 +80,8 @@ For students who use MacOS or Windows, we provide you a Docker image which has a
     docker run -it --privileged -v /path/to/tiger-compiler-2019-fall:/home/stu/tiger-compiler-2019-fall se302/tigerlabs_env:latest /bin/bash
     cd tiger-compiler-2019-fall
     ```
+
+**Notice:** Please do not use Docker Toolbox. For those who Windows Home, you still use virtual machine instead and install a Ubuntu18.04 image.
 
 ## Compiling
 
@@ -100,9 +112,18 @@ gdb test_xxx # e.g. `gdb test_slp`
 
 ## Submitting Your Labs
 
-```bash
-./handin.sh
-```
+1. First commit your codes.
+
+   ```bash
+   git add somefiles
+   git commit -m "A message!"
+   ```
+
+2. Pack your codes, rename the packed file, and upload it!
+
+   ```bash
+   ./handin.sh
+   ```
 
 ## FAQ
 
