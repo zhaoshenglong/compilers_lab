@@ -1,4 +1,0 @@
- opExp(
-  PLUS,
-  intExp(3),
-  stringExp(var))

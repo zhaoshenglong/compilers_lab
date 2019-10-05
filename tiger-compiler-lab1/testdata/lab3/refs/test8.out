@@ -1,7 +1,0 @@
- iffExp(
-  opExp(
-   GREAT,
-   intExp(10),
-   intExp(20)),
-  intExp(30),
-  intExp(40))

@@ -1,4 +1,0 @@
- opExp(
-  GREAT,
-  intExp(3),
-  stringExp(df))

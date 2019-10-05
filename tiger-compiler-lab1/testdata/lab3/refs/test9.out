@@ -1,7 +1,0 @@
- iffExp(
-  opExp(
-   GREAT,
-   intExp(5),
-   intExp(4)),
-  intExp(13),
-  stringExp( ))
