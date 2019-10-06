@@ -10,6 +10,6 @@ if [[ -n $(git status -s) ]]; then
   exit 1
 fi
 
-tar czf `$1_515030910241`.tar.gz --exclude=lex.cc --exclude=scannerbase.h --exclude=parse.cc --exclude=parserbase.h src
+tar czf $1_515030910241.tar.gz --exclude=lex.cc --exclude=scannerbase.h --exclude=parse.cc --exclude=parserbase.h src
 echo "Please rename labx_xxx.tar.gz to lab<lab number>_<your student id>.tar.gz"
 echo "For example, lab1_517030900000.tar.gz."
