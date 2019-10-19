@@ -46,12 +46,21 @@ The Tiger Compiler Labs are not perfect, but we have tried our best and spent a 
    git pull origin https://ipads.se.sjtu.edu.cn:1312/lab/tiger-compiler-2019-fall.git master
    ```
 
+   And then check the content of `VERSION` file and make sure that the lab environment in your local computer is new enough.
+
 **Notice:** You may need to do some code merging work.
 
 ## Installing Dependencies
 
 flexc++ and bisonc++ will be needed in lab2 and later.
 Although these libraries are not needed in lab1, you have to install them before you start lab1.
+
+**Notice:**: Now we only support the following version of flexc++ and bisonc++:
+
+```bash
+flexc++ - V2.06.02
+bisonc++ - V6.01.00
+```
 
 ### Ubuntu18.04
 
@@ -140,3 +149,26 @@ gdb test_xxx # e.g. `gdb test_slp`
         autocrlf = false
         safecrlf = true
     ```
+
+2. How can I get the root privilege in the docker container?
+
+   ***Solution:*** Modify docker file and rebuild the docker image.
+
+   ```dockerfile
+   FROM ubuntu:18.04
+
+   # Use aliyun registry
+   RUN  sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
+   RUN  apt-get clean
+
+   RUN apt-get update && apt-get install -y git cmake g++ gcc vim tar gdb flexc++ bisonc++
+
+   WORKDIR /root
+   ```
+
+   And run the command:
+
+   ```bash
+   docker run -it --privileged -v /path/to/tiger-compiler-2019-fall:/root/tiger-compiler-2019-fall se302/tigerlabs_env:latest /bin/bash
+   cd tiger-compiler-2019-fall
+   ```
