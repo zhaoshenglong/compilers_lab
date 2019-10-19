@@ -31,6 +31,8 @@ class Scanner : public ScannerBase {
   int beginComment();
   int endComment();
   int getCommentLevel();
+  void setStringBuf(std::string);
+  std::string getStringBuf();
 
   int commentLevel_;
   std::string stringBuf_;
@@ -51,8 +53,6 @@ inline void Scanner::preCode() {
 
 inline void Scanner::postCode(PostEnum__ type) {
   // optionally replace by your own code
-  //  printf("%s %lu  %d \n", matched().c_str(), length(), charPos_);
-  
 }
 
 inline void Scanner::print() { print__(); }
@@ -67,6 +67,8 @@ inline void Scanner::adjustStr() { charPos_ += length(); }
 inline int Scanner::beginComment() {return ++commentLevel_;}
 inline int Scanner::endComment() {return --commentLevel_;}
 inline int Scanner::getCommentLevel() {return commentLevel_;}
+inline void Scanner::setStringBuf(std::string s) {stringBuf_ = s;}
+inline std::string Scanner::getStringBuf() {return stringBuf_;}
 
 #endif  // TIGER_LEX_SCANNER_H_
 

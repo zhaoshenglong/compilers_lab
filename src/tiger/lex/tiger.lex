@@ -152,80 +152,56 @@ id [a-zA-Z_][a-zA-Z0-9_]*
   \"  {
         adjust();
         begin(StartCondition__::INITIAL);
-        std::string match = matched();
-        match = match.substr(1, match.length() - 2);
-        
 
-        std::string res;
+        setMatched(getStringBuf());
+        setStringBuf(std::string());
 
-        int i = 0;
-        while(i < match.length()) {
-          if (match[i] == '\\') {
-            if (match[i + 1] == 't') {
-              res += "\t";
-              i += 2;
-            } else if (match[i + 1] == 'n') {
-              res += "\n";
-              i += 2;
-            } else if (match[i + 1] == '\\') {
-              res += "\\";
-              i += 2;
-            } else if (match[i + 1] == '"'){
-              res += "\"";
-              i += 2;
-            } else if (match[i + 1] == '^') {
-              switch(match[i + 2]) {
-                case 'C':
-                  res += (char)3;
-                  break;
-                case 'O':
-                  res += (char)15;
-                  break;
-                case 'M':
-                  res += (char)13;
-                  break;
-                case 'P':
-                  res += (char)16;
-                  break;
-                case 'I':
-                  res += (char)9;
-                  break;
-                case 'L':
-                  res += (char)12;
-                  break;
-                case 'E':
-                  res += (char)5;
-                  break;
-                case 'R':
-                  res += (char)18;
-                  break;
-                case 'S':
-                  res += (char)19;
-                  break;
-              }
-              i += 3;
-            } else if (match[i + 1] <= '9' && match[i + 1] >= '0') {
-              int val = std::stoi(match.substr(i + 1, i + 4));
-              res += std::string(1, (char)val);
-              i += 4;
-            } else if (match[i + 1] == '\n') {
-              i += 1;
-              while(match[i] == '\n' || match[i] == ' ' || match[i] == '\t') {
-                i++;
-              }
-            } else {
-              i++;
-            }
-          } else {
-            res += match[i];
-            i++;
-          }
-        } 
-
-        setMatched(res);
-      
         return Parser::STRING;
       }
-  \\.|.|\\\n more();
+
+  \\n {
+        more();
+        std::string match = getStringBuf();
+        setStringBuf(match + std::string("\n"));
+      }
+  \\t {
+        more();
+        std::string match = getStringBuf();
+        setStringBuf(match + std::string("\t"));
+      }
+  \\\\ {
+        more();
+        std::string match = getStringBuf();
+        setStringBuf(match + std::string("\\"));
+      }
+  \\\" {
+        more();
+        std::string match = getStringBuf();
+        setStringBuf(match + std::string("\""));
+      }
+  \\[0-9]+ {
+        more();
+        std::string match = matched();
+        std::string matchBuf = getStringBuf();
+        matchBuf += stoi(match.substr(match.length() - 3, match.length()));
+        setStringBuf(matchBuf);
+      }
+  \\\^[A-Z] {
+        more();
+        std::string match = matched();
+        char escape = match[match.length() - 1];
+
+        std::string matchBuf = getStringBuf();
+        matchBuf += escape - 'A' + 1;
+        setStringBuf(matchBuf);
+      }
+  \\[ \r\n\t\v]+\\ more();
+
+  . {
+      more();
+      std::string matchBuf = getStringBuf();
+      matchBuf += matched()[length() - 1];
+      setStringBuf(matchBuf);
+    }
 
 }
