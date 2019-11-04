@@ -176,6 +176,7 @@ TY::Ty *RecordExp::SemAnalyze(VEnvType venv, TEnvType tenv,
   TY::Ty *ty = tenv->Look(typ);
   if (!ty) {
     errormsg.Error(pos, "undefined type %s", typ->Name().c_str());
+    return TY::VoidTy::Instance();
   } else {
     // TY::RecordTy *recordTy = (TY::RecordTy *)ty;
     // TY::FieldList *recFields = recordTy->fields;
