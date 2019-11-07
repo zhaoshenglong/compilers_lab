@@ -81,11 +81,15 @@ TY::Ty *SubscriptVar::SemAnalyze(VEnvType venv, TEnvType tenv,
     errormsg.Error(pos, "array variable's subscript must be integer");
   }
 
-  TY::Ty *arrayTy = var->SemAnalyze(venv, tenv, labelcount);
-  if(arrayTy->kind != TY::Ty::ARRAY) {
+  TY::Ty *ty = var->SemAnalyze(venv, tenv, labelcount);
+  if(ty->kind != TY::Ty::ARRAY) {
     errormsg.Error(pos, "array type required");
+    return ty;
+  } else {
+    TY::ArrayTy *arrayTy = (TY::ArrayTy *)ty;
+    return arrayTy->ty->ActualTy();
   }
-  return arrayTy->ActualTy();
+  
 }
 
 TY::Ty *VarExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
@@ -160,8 +164,10 @@ TY::Ty *OpExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
   case LE_OP:
   case GT_OP:
   case GE_OP:
-    if (!leftTy->IsSameType(rightTy))
+    if (!leftTy->IsSameType(rightTy)){
       errormsg.Error(pos, "same type required");
+      printf("expected type: %d, actual type: %d\n", rightTy->kind, leftTy->kind);  
+    }
     break;
   default:
     break;
