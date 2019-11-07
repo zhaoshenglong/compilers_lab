@@ -39,31 +39,33 @@ void do_proc(FILE* out, F::ProcFrag* procFrag) {
   //  	stmLists->head->Print(stdout);
   // 	printf("------====Basic block=====-------\n");
   //  }
-
   stmList = C::TraceSchedule(blo);
   //  stmList->Print(stdout);
   //  printf("-------====trace=====-----\n");
+
+  // lab5&lab6: code generation
   AS::InstrList* iList = CG::Codegen(procFrag->frame, stmList); /* 9 */
   //  AS_printInstrList(stdout, iList, Temp::Map::LayerMap(temp_map,
   //  Temp_name()));
 
+  // lab6: register allocation
   //  printf("----======before RA=======-----\n");
   RA::Result allocation = RA::RegAlloc(procFrag->frame, iList); /* 11 */
   //  printf("----======after RA=======-----\n");
 
-  // AS::Proc* proc = F::F_procEntryExit3(this->frame, allocation.il);
+  AS::Proc* proc = F::F_procEntryExit3(this->frame, allocation.il);
 
-  // std::string procName = proc->frame->label->Name();
-  // fprintf(out, ".globl %s\n", procName.c_str());
-  // fprintf(out, ".type %s, @function\n", procName.c_str());
-  // // prologue
-  // fprintf(out, "%s", proc->prolog.c_str());
-  // // body
-  // proc->body->Print(out,
-  //                   TEMP::Map::LayerMap(temp_map, allocation.coloring));
-  // // epilog
-  // fprintf(out, "%s", proc->epilog.c_str());
-  // fprintf(out, ".size %s, .-%s\n", procName.c_str(), procName.c_str());
+  std::string procName = proc->frame->label->Name();
+  fprintf(out, ".globl %s\n", procName.c_str());
+  fprintf(out, ".type %s, @function\n", procName.c_str());
+  // prologue
+  fprintf(out, "%s", proc->prolog.c_str());
+  // body
+  proc->body->Print(out,
+                    TEMP::Map::LayerMap(temp_map, allocation.coloring));
+  // epilog
+  fprintf(out, "%s", proc->epilog.c_str());
+  fprintf(out, ".size %s, .-%s\n", procName.c_str(), procName.c_str());
 }
 
 void do_str(FILE* out, F::StringFrag* strFrag) {
@@ -108,13 +110,13 @@ int main(int argc, char** argv) {
   // If you have implemented escape analysis, uncomment this
   // ESC::FindEscape(absyn_root); /* set varDec's escape field */
 
+  // Lab5: translate IR tree
   frags = TR::TranslateProgram(absyn_root);
   if (errormsg.anyErrors) return 1; /* don't continue */
 
   /* convert the filename */
   sprintf(outfile, "%s.s", argv[1]);
   out = fopen(outfile, "w");
-  /* Chapter 8, 9, 10, 11 & 12 */
 
   fprintf(out, ".text\n");
   for (F::FragList* fragList = frags; fragList; fragList = fragList->tail)
