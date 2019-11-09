@@ -67,7 +67,8 @@ for tcase in $(ls $TESTCASEDIR/); do
         mv __ref.txt _ref.txt
       fi
     fi
-    grep -Fof _ref.txt _tmp.txt >&__tmp.txt
+    #grep -Fof _ref.txt _tmp.txt >&__tmp.txt
+	awk -F : '{print $3}' _tmp.txt >__tmp.txt
 
     diff $DIFFOPTION __tmp.txt _ref.txt >&.tmp.txt
     if [ -s .tmp.txt ]; then

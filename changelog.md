@@ -1,5 +1,10 @@
 # Change Logs
 
+## tiger-compiler-2019-fall(1.0.2)
+
+- Delete deprecated grade scripts.
+
+
 ## tiger-compiler-2019-fall(1.0.1)
 
 - Modify test scripts to prompt zero scores if the testcases and refs folders can't be appropriately linked.
