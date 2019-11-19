@@ -52,7 +52,17 @@ T::Stm* reorder(C::ExpRefList* rlist) {
   }
 }
 
-C::ExpRefList* get_call_rlist(T::Exp* exp) {}
+C::ExpRefList* get_call_rlist(T::Exp* exp) {
+  C::ExpRefList *rlist, *curr;
+    T::CallExp* callexp = dynamic_cast<T::CallExp*>(exp);
+    if(!callexp) assert(0);
+    T::ExpList* args = callexp->args;
+    curr = rlist = new C::ExpRefList(&callexp->fun, nullptr);
+    for (;args; args=args->tail) {
+        curr = curr->tail = new C::ExpRefList(&args->head, nullptr);
+    }
+    return rlist;
+}
 
 /* processes stm so that it contains no ESEQ nodes */
 T::Stm* do_stm(T::Stm* stm) { return stm->Canon(stm); }
