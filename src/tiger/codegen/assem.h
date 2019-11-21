@@ -43,9 +43,9 @@ class OperInstr : public Instr {
 class LabelInstr : public Instr {
  public:
   std::string assem;
-  TEMP::Label label;
+  TEMP::Label* label;
 
-  LabelInstr(std::string assem, TEMP::Label label)
+  LabelInstr(std::string assem, TEMP::Label* label)
       : Instr(LABEL), assem(assem), label(label) {}
 
   void Print(FILE* out, TEMP::Map* m) const override;
