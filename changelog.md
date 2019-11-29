@@ -1,5 +1,10 @@
 # Change Logs
 
+## tiger-compiler-2019-fall(1.0.3)
+
+- Complement missing function in canon.
+- Fix compile-errors in main.cc.
+
 ## tiger-compiler-2019-fall(1.0.2)
 
 - Delete deprecated grade scripts.
