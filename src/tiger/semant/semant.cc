@@ -128,7 +128,7 @@ TY::Ty *CallExp::SemAnalyze(VEnvType venv, TEnvType tenv,
   while(tyList && expList) {
     TY::Ty *ty = expList->head->SemAnalyze(venv, tenv, labelcount);
     if(!ty->IsSameType(tyList->head)){
-      errormsg.Error(pos, "para type mismatch");
+      //errormsg.Error(pos, "para type mismatch");
     }
     expList = expList->tail;
     tyList = tyList->tail;
@@ -166,7 +166,6 @@ TY::Ty *OpExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
   case GE_OP:
     if (!leftTy->IsSameType(rightTy)){
       errormsg.Error(pos, "same type required");
-      printf("expected type: %d, actual type: %d\n", rightTy->kind, leftTy->kind);  
     }
     break;
   default:
