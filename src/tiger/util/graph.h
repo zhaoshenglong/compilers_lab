@@ -123,7 +123,7 @@ Node<T>* Graph<T>::NewNode(T* info) {
 
 template <class T>
 bool Node<T>::GoesTo(Node<T>* n) {
-  return this->succs_->inNodeList(n);
+  return this->succs_->InNodeList(n);
 }
 
 template <class T>
@@ -131,7 +131,7 @@ void Graph<T>::AddEdge(Node<T>* from, Node<T>* to) {
   assert(from);
   assert(to);
   assert(from->mygraph_ == to->mygraph_);
-  if (from->goesTo(to)) return;
+  if (from->GoesTo(to)) return;
   to->preds_ = new NodeList<T>(from, to->preds_);
   from->succs_ = new NodeList<T>(to, from->succs_);
 }
@@ -139,8 +139,8 @@ void Graph<T>::AddEdge(Node<T>* from, Node<T>* to) {
 template <class T>
 void Graph<T>::RmEdge(Node<T>* from, Node<T>* to) {
   assert(from && to);
-  to->preds_ = NodeList<T>::deleteNode(from, to->pred());
-  from->succs_ = NodeList<T>::deleteNode(to, from->succ());
+  to->preds_ = NodeList<T>::DeleteNode(from, to->Pred());
+  from->succs_ = NodeList<T>::DeleteNode(to, from->Succ());
 }
 
 template <class T>
@@ -210,7 +210,7 @@ NodeList<T>* NodeList<T>::DeleteNode(Node<T>* a, NodeList<T>* l) {
   if (a == l->head)
     return l->tail;
   else
-    return new NodeList<T>(l->head, deleteNode(a, l->tail));
+    return new NodeList<T>(l->head, DeleteNode(a, l->tail));
 }
 
 template <class T>
@@ -218,7 +218,7 @@ NodeList<T>* NodeList<T>::CatList(NodeList<T>* a, NodeList<T>* b) {
   if (a == nullptr)
     return b;
   else
-    return new NodeList<T>(a->head, catList(a->tail, b));
+    return new NodeList<T>(a->head, CatList(a->tail, b));
 }
 
 /* The type of "tables" mapping graph-nodes to information */
@@ -234,10 +234,10 @@ void Graph<T>::Show(FILE* out, NodeList<T>* p, void showInfo(T*)) {
     Node<T>* n = p->head;
     NodeList<T>* q;
     assert(n);
-    if (showInfo) showInfo(n->nodeInfo());
-    fprintf(out, " (%d): ", n->key());
-    for (q = n->succ(); q != nullptr; q = q->tail)
-      fprintf(out, "%d ", q->head->key());
+    if (showInfo) showInfo(n->NodeInfo());
+    fprintf(out, " (%d): ", n->Key());
+    for (q = n->Succ(); q != nullptr; q = q->tail)
+      fprintf(out, "%d ", q->head->Key());
     fprintf(out, "\n");
   }
 }
