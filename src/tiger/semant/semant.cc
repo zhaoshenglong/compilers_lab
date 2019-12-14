@@ -45,7 +45,7 @@ TY::Ty *SimpleVar::SemAnalyze(VEnvType venv, TEnvType tenv,
   E::EnvEntry *envEntry = venv->Look(sym);
   if(!envEntry) {
     errormsg.Error(pos, "undefined variable %s", sym->Name().c_str());
-    return TY::VoidTy::Instance();
+    return TY::UndefinedTy::Instance();
   }
   return ((E::VarEntry *)envEntry)->ty;
 }
@@ -56,7 +56,7 @@ TY::Ty *FieldVar::SemAnalyze(VEnvType venv, TEnvType tenv,
   TY::Ty *ty = var->SemAnalyze(venv, tenv, labelcount)->ActualTy();
   if(ty->kind != TY::Ty::RECORD) {
     errormsg.Error(pos, "not a record type");
-    return TY::VoidTy::Instance();
+    return TY::UndefinedTy::Instance();
   }
   TY::RecordTy *recTy = (TY::RecordTy *)ty;
   TY::FieldList * fieldTy = recTy->fields;
@@ -70,7 +70,7 @@ TY::Ty *FieldVar::SemAnalyze(VEnvType venv, TEnvType tenv,
     fieldTy = fieldTy->tail;
   }
   errormsg.Error(pos, "field %s doesn't exist", sym->Name().c_str());  
-  return TY::VoidTy::Instance();
+  return TY::UndefinedTy::Instance();
 }
 
 TY::Ty *SubscriptVar::SemAnalyze(VEnvType venv, TEnvType tenv,
@@ -82,9 +82,8 @@ TY::Ty *SubscriptVar::SemAnalyze(VEnvType venv, TEnvType tenv,
   }
 
   TY::Ty *ty = var->SemAnalyze(venv, tenv, labelcount);
-  if(ty->kind != TY::Ty::ARRAY) {
+  if(ty->ActualTy()->kind != TY::Ty::ARRAY) {
     errormsg.Error(pos, "array type required");
-    return ty;
   } else {
     TY::ArrayTy *arrayTy = (TY::ArrayTy *)ty;
     return arrayTy->ty->ActualTy();
@@ -127,14 +126,14 @@ TY::Ty *CallExp::SemAnalyze(VEnvType venv, TEnvType tenv,
   A::ExpList *expList = args;
   while(tyList && expList) {
     TY::Ty *ty = expList->head->SemAnalyze(venv, tenv, labelcount);
-    if(!ty->IsSameType(tyList->head)){
-      //errormsg.Error(pos, "para type mismatch");
+    if(!ty->IsSameType(tyList->head) && !ty->IsSameType(TY::UndefinedTy::Instance())){
+      errormsg.Error(pos, "para type mismatch");
     }
     expList = expList->tail;
     tyList = tyList->tail;
   } 
   if(tyList) {
-    errormsg.Error(pos, "missing params in function %s", func->Name().c_str());
+    // errormsg.Error(pos, "missing params in function %s", func->Name().c_str());
   }
   if(expList) {
     errormsg.Error(pos, "too many params in function %s", func->Name().c_str());
@@ -148,14 +147,17 @@ TY::Ty *OpExp::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
   // TODO: Put your codes here (lab4).
   TY::Ty *leftTy = left->SemAnalyze(venv, tenv, labelcount);
   TY::Ty *rightTy = right->SemAnalyze(venv, tenv, labelcount);
-
+  
   switch (oper)
   {
   case PLUS_OP:
   case MINUS_OP:
   case TIMES_OP:
   case DIVIDE_OP:
-    if (!leftTy->IsSameType(TY::IntTy::Instance()) || !rightTy->IsSameType(TY::IntTy::Instance()))
+    if (!leftTy->IsSameType(TY::IntTy::Instance()) 
+        || !rightTy->IsSameType(TY::IntTy::Instance()))
+      if (!leftTy->IsSameType(TY::UndefinedTy::Instance()) 
+          && !rightTy->IsSameType(TY::UndefinedTy::Instance()))
       errormsg.Error(pos, "integer required");
     break;
   case EQ_OP:
@@ -219,8 +221,12 @@ TY::Ty *AssignExp::SemAnalyze(VEnvType venv, TEnvType tenv,
   TY::Ty *varTy = var->SemAnalyze(venv, tenv, labelcount);
   TY::Ty *expTy = exp->SemAnalyze(venv, tenv, labelcount);
 
+  if (varTy->IsSameType(TY::UndefinedTy::Instance())) {
+    return TY::VoidTy::Instance();
+  }
   if(!expTy->IsSameType(varTy)) {
     errormsg.Error(pos, "unmatched assign exp");
+    return TY::VoidTy::Instance();
   }
   if(var->kind == A::Var::SIMPLE) {
     A::SimpleVar *sv = (A::SimpleVar*)var;
@@ -402,7 +408,7 @@ void VarDec::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
   // TODO: Put your codes here (lab4).
   TY::Ty *expTy = init->SemAnalyze(venv, tenv, labelcount);
   if(venv->Look(var)) {
-    errormsg.Error(pos, "two variables have the same name");
+    // errormsg.Error(pos, "two variables have the same name");
     return;
   }
   if (typ){

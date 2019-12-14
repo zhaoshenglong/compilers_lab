@@ -19,6 +19,7 @@ NilTy NilTy::nilty_;
 IntTy IntTy::intty_;
 StringTy StringTy::stringty_;
 VoidTy VoidTy::voidty_;
+UndefinedTy UndefinedTy::undefinedty_;
 
 Ty *Ty::ActualTy() {
   Ty *ty = this;

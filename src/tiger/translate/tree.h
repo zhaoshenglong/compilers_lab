@@ -15,6 +15,21 @@ class StmAndExp;
 }  // namespace C
 
 namespace T {
+static T::ExpList *make_actual_list(A::ExpList *formals) {
+  if (!formals) {
+    return NULL;
+  }
+  return new T::ExpList(formals->head->Translate().exp, 
+                        make_actual_list(formals->tail));
+}
+
+static T::ExpList *make_field_list(A::EFieldList *fileds) {
+  if (!fileds) {
+    return NULL;
+  }
+  return new T::ExpList(fileds->head->exp->Translate().exp, 
+                        make_field_list(fileds->tail));
+}
 
 class Stm;
 class Exp;
@@ -28,25 +43,25 @@ enum BinOp {
   MINUS_OP,
   MUL_OP,
   DIV_OP,
-  AND_OP,
-  OR_OP,
-  LSHIFT_OP,
-  RSHIFT_OP,
-  ARSHIFT_OP,
-  XOR_OP
+  // AND_OP,
+  // OR_OP,
+  // LSHIFT_OP,
+  // RSHIFT_OP,
+  // ARSHIFT_OP,
+  // XOR_OP
 };
 
 enum RelOp {
-  EQ_OP,
+  EQ_OP = 0x4,
   NE_OP,
   LT_OP,
   GT_OP,
   LE_OP,
   GE_OP,
-  ULT_OP,
-  ULE_OP,
-  UGT_OP,
-  UGE_OP
+  // ULT_OP,
+  // ULE_OP,
+  // UGT_OP,
+  // UGE_OP
 };
 
 /*

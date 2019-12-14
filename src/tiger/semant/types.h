@@ -11,7 +11,7 @@ class FieldList;
 
 class Ty {
  public:
-  enum Kind { RECORD, NIL, INT, STRING, ARRAY, NAME, VOID };
+  enum Kind { RECORD, NIL, INT, STRING, ARRAY, NAME, VOID, UNDEFINED };
 
   Kind kind;
 
@@ -60,6 +60,15 @@ class VoidTy : public Ty {
   static VoidTy voidty_;
 
   VoidTy() : Ty(VOID) {}
+};
+
+class UndefinedTy : public Ty {
+ public:
+  static UndefinedTy *Instance() {return &undefinedty_;} 
+ private:
+  static UndefinedTy undefinedty_;
+
+  UndefinedTy() : Ty(UNDEFINED) {}
 };
 
 class RecordTy : public Ty {
