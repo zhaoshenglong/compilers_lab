@@ -15,22 +15,6 @@ class StmAndExp;
 }  // namespace C
 
 namespace T {
-static T::ExpList *make_actual_list(A::ExpList *formals) {
-  if (!formals) {
-    return NULL;
-  }
-  return new T::ExpList(formals->head->Translate().exp, 
-                        make_actual_list(formals->tail));
-}
-
-static T::ExpList *make_field_list(A::EFieldList *fileds) {
-  if (!fileds) {
-    return NULL;
-  }
-  return new T::ExpList(fileds->head->exp->Translate().exp, 
-                        make_field_list(fileds->tail));
-}
-
 class Stm;
 class Exp;
 class NameExp;

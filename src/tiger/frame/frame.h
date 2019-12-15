@@ -9,26 +9,39 @@
 
 
 namespace F {
+
 extern const int wordsize;
 TEMP::Temp *FP();
+TEMP::Temp *RV();
+TEMP::Temp *SP();
+TEMP::Map *tempMap();
+TEMP::TempList *registers();
 
+F::Frame *newFrame(TEMP::Label *, U::BoolList *);
 T::Exp *externalCall(std::string s, T::ExpList * args);
+F::StringFrag *String(TEMP::Label *lab, std::string str);
+F::ProcFrag *NewProcFrag(T::Stm *body, F::Frame *frame);
+
+T::Stm *procEntryExit1(F::Frame *frame, T::Stm *stm);
+AS::InstrList *procEntryExit2(AS::InstrList *body);
+AS::Proc *procEntryExit3(F::Frame *frame, AS::InstrList *body);
 
 class Frame {
   // Base class
  public:
-  TEMP::Label name;
+  TEMP::Label *name;
   AccessList *formals;
+  AccessList *locals;
+  T::SeqStm  *saveFormalStm;
   int size;
 
-  Frame(TEMP::Label name, U::BoolList *f) : name(name){}
-  /* Frame instance members & methods */
-  TEMP::Label name();
-  std::string getlabel();
-  AccessList getFormals();
+  Frame(TEMP::Label *name, U::BoolList *f) : name(name){};
 
-  /* Frame children members & methods */
-  virtual Access *allocLocal(bool escape) const = 0;
+  virtual T::Stm *getSaveEscFormalStm() const = 0;
+  virtual TEMP::Label *getName() const = 0;
+  virtual std::string getLabel() const = 0;
+  virtual AccessList *getFormals() const = 0;
+  virtual Access *allocLocal(bool escape);
 };
 
 class Access {

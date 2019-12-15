@@ -442,7 +442,6 @@ void TypeDec::SemAnalyze(VEnvType venv, TEnvType tenv, int labelcount) const {
     }
     tyList = tyList->tail;
   }
-
   tyList = types;
   while(tyList) {
     TY::Ty *ty = tenv->Look(tyList->head->name);
