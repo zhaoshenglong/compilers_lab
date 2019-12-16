@@ -37,8 +37,15 @@ TEMP::Temp *RV() {
   return RAX();
 }
 TEMP::Temp *SP() {
-return RSP();
+  return RSP();
 }
+TEMP::Temp *DIVIDEND() {
+  return RAX();
+}
+TEMP::Temp *REMAINDER() {
+  return RDX();
+}
+
 TEMP::TempList *registers() {
   static TEMP::TempList *registers = NULL;
   if (!registers) {
@@ -60,6 +67,50 @@ TEMP::TempList *registers() {
   return registers;
 }
 
+TEMP::TempList *SpecialRegs() {
+  static TEMP::TempList *specialRegs = NULL;
+  if (!specialRegs) {
+    specialRegs = new TEMP::TempList(F::SP(),
+                  new TEMP::TempList(F::FP(),
+                  new TEMP::TempList(F::RV(), nullptr)));;
+  }
+  return specialRegs;
+}
+TEMP::TempList *CalleeRegs() {
+  static TEMP::TempList *calleeSaves = NULL;
+  if (!calleeSaves) {
+    calleeSaves = new TEMP::TempList(RBX(),
+                  new TEMP::TempList(RBP(),
+                  new TEMP::TempList(R12(),
+                  new TEMP::TempList(R13(),
+                  new TEMP::TempList(R14(),
+                  new TEMP::TempList(R15(), nullptr))))));
+  }
+  return calleeSaves;
+}
+TEMP::TempList *ArgRegs() {
+  static TEMP::TempList *argRegs = NULL;
+  if (!argRegs) {
+    argRegs = new TEMP::TempList(RDI(),
+              new TEMP::TempList(RSI(),
+              new TEMP::TempList(RDX(),
+              new TEMP::TempList(RCX(),
+              new TEMP::TempList(R8(),
+              new TEMP::TempList(R9(), nullptr))))));
+  }
+  return argRegs;
+}
+TEMP::TempList *CallerRegs() {
+  static TEMP::TempList *callerSaves = NULL;
+  if (!callerSaves){
+    callerSaves = new TEMP::TempList(R10(),
+                  new TEMP::TempList(R11(), nullptr));
+  }
+  return callerSaves;
+}
+
+TEMP::Map *tempMap;
+
 T::Exp *externalCall(std::string s, T::ExpList *args) {
   return new T::CallExp(
           new T::NameExp(
@@ -68,11 +119,11 @@ T::Exp *externalCall(std::string s, T::ExpList *args) {
 }
 
 F::StringFrag *String(TEMP::Label *lab, std::string str) {
-
+  return new F::StringFrag(lab, str);
 }
 
 F::ProcFrag *NewProcFrag(T::Stm *body, F::Frame *frame) {
-  return NULL; 
+  return new F::ProcFrag(body, frame); 
 }
 
 T::Stm *procEntryExit1(F::Frame *frame, T::Stm *stm) {
@@ -119,22 +170,30 @@ T::Stm *procEntryExit1(F::Frame *frame, T::Stm *stm) {
 }
 
 AS::InstrList *procEntryExit2(AS::InstrList *body) {
-
+  static TEMP::TempList *returnSink = NULL;
+  if(!returnSink) {
+    returnSink = new TEMP::TempList(RV(), 
+                 new TEMP::TempList(SP(), CalleeRegs()));
+  }
+  return AS::InstrList::Splice(
+          body, 
+          new AS::InstrList(
+            new AS::OperInstr("", NULL, returnSink, NULL), NULL));
 }
 
 AS::Proc *procEntryExit3(F::Frame *frame, AS::InstrList *body) {
-  
+  return NULL;
 }
 
 class X64Frame : public Frame {
  public:
-  TEMP::Label *name;
+  TEMP::Label *label;
   AccessList *formals;
   AccessList *locals;
   T::SeqStm  *saveFormalStm;
   int size;
 
-  X64Frame(TEMP::Label *name, U::BoolList *formalBools): Frame(name, formalBools), name(name) {
+  X64Frame(TEMP::Label *name, U::BoolList *formalBools): Frame(name, formalBools), label(name) {
     F::AccessList *accPtr = NULL;
     F::Access *acc;
     int cnt = 0;
@@ -181,10 +240,10 @@ class X64Frame : public Frame {
     return saveFormalStm;
   }
   TEMP::Label *getName() const override {
-    return name;
+    return label;
   }
   std::string getLabel() const override {
-    return name->Name();
+    return label->Name();
   }
   AccessList *getFormals() const override {
     return formals;

@@ -961,7 +961,7 @@ TR::Exp *FunctionDec::Translate(S::Table<E::EnvEntry> *venv,
     // add fragments
     T::Stm *stm = new T::MoveStm(new T::TempExp(F::RV()), bodyExpTy.exp->UnEx());
     T::Stm * procStm = F::procEntryExit1(funEntry->level->frame, stm);
-    F::Frag *procFrag = F::NewProcFrag(procStm, funEntry->level->frame);
+    F::ProcFrag *procFrag = F::NewProcFrag(procStm, funEntry->level->frame);
     AddToGlobalFragList(procFrag);
 
     venv->EndScope();

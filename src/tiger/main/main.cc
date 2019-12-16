@@ -53,7 +53,7 @@ void do_proc(FILE* out, F::ProcFrag* procFrag) {
   RA::Result allocation = RA::RegAlloc(procFrag->frame, iList); /* 11 */
   //  printf("----======after RA=======-----\n");
 
-  AS::Proc* proc = F::F_procEntryExit3(procFrag->frame, allocation.il);
+  AS::Proc* proc = F::procEntryExit3(procFrag->frame, allocation.il);
 
   std::string procName = procFrag->frame->label->Name();
   fprintf(out, ".globl %s\n", procName.c_str());

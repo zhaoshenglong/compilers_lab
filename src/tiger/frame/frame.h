@@ -14,8 +14,15 @@ extern const int wordsize;
 TEMP::Temp *FP();
 TEMP::Temp *RV();
 TEMP::Temp *SP();
-TEMP::Map *tempMap();
+TEMP::Temp *DIVIDEND();   // special regs for division in X86_64, rax
+TEMP::Temp *REMAINDER();  // special regs for division in X86_64, rdx
 TEMP::TempList *registers();
+TEMP::TempList *SpecialRegs();
+TEMP::TempList *CalleeRegs();
+TEMP::TempList *ArgRegs();
+TEMP::TempList *CallerRegs();
+
+TEMP::Map *tempMap();
 
 F::Frame *newFrame(TEMP::Label *, U::BoolList *);
 T::Exp *externalCall(std::string s, T::ExpList * args);
@@ -29,13 +36,13 @@ AS::Proc *procEntryExit3(F::Frame *frame, AS::InstrList *body);
 class Frame {
   // Base class
  public:
-  TEMP::Label *name;
+  TEMP::Label *label;
   AccessList *formals;
   AccessList *locals;
   T::SeqStm  *saveFormalStm;
   int size;
 
-  Frame(TEMP::Label *name, U::BoolList *f) : name(name){};
+  Frame(TEMP::Label *name, U::BoolList *f) : label(name){};
 
   virtual T::Stm *getSaveEscFormalStm() const = 0;
   virtual TEMP::Label *getName() const = 0;
