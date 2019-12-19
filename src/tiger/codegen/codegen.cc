@@ -4,17 +4,15 @@
 namespace 
 {
   static AS::InstrList *iList = NULL, *last = NULL;
-
+  static std::string *framesize_str = NULL;
 
   static TEMP::TempList *L(TEMP::Temp *r1, TEMP::TempList *r2) {
     return new TEMP::TempList(r1, r2);
   }
-
   static void emit(AS::Instr *inst);
   static TEMP::TempList *munchArgs(int off, T::ExpList *args);
   static TEMP::Temp *munchExp(T::Exp *e);
   static void munchStm(T::Stm *s);
-
 } // namespace 
 
 namespace CG {
@@ -22,10 +20,17 @@ namespace CG {
 AS::InstrList* Codegen(F::Frame* f, T::StmList* stmList) {
   AS::InstrList *list; 
   T::StmList *sl;
+  framesize_str = f->getFramesizeStr();
+
   for (sl = stmList; sl;sl = sl->tail) {
     munchStm(sl->head);
   }
-  list = iList; iList = last = NULL; return list;
+  list = iList; 
+  
+  // clear in case overlay the next frame
+  framesize_str = NULL;
+  iList = last = NULL; 
+  return list;
 }
 
 }  // namespace CG
@@ -45,72 +50,87 @@ static void emit(AS::Instr *inst) {
 
 static TEMP::Temp *munchExp(T::Exp *e) {
   TEMP::Temp *r = TEMP::Temp::NewTemp();
-  char instr[128];
   switch (e->kind)
   {
   case T::Exp::CONST:{
+    char instr[128];
     T::ConstExp *ce = static_cast<T::ConstExp *>(e);
-    sprintf(instr, "%s%d%s\n", "\tmovq\t$", ce->consti, ", `d0");
-    emit(new AS::OperInstr(std::string(instr), L(r, NULL), NULL, NULL));
+    sprintf(instr, "\tmovq\t$%d, `d0", ce->consti);
+    emit(new AS::MoveInstr(std::string(instr), L(r, NULL), NULL));
+    // printf("case const");
     return r;
   }
   case T::Exp::TEMP:{
-    return static_cast<T::TempExp *>(e)->temp;
+    T::TempExp *te = static_cast<T::TempExp *>(e);
+    // transfer all FP inference into SP + framesize
+    // printf("case temp");
+    if (te->temp == F::FP()) {
+      char instr[128];
+      if (!framesize_str) {
+        printf("framesize str is null!\n");
+      }
+      sprintf(instr, "\tleaq\t%s(%%rsp), `d0", framesize_str->c_str());
+      emit(new AS::OperInstr(instr, L(r, NULL), NULL, NULL));
+      return r;
+    } else {
+      return te->temp;
+    }
   }
   case T::Exp::BINOP:{
     T::BinopExp *bine = static_cast<T::BinopExp*>(e);
+    // printf("case binop");
     switch (bine->op)
     {
     case T::BinOp::PLUS_OP:{
-      emit(new AS::OperInstr("\tmovq\t`s0, `d0\n", 
+      emit(new AS::OperInstr("\tmovq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->left), NULL), 
            NULL));
-      emit(new AS::OperInstr("\taddq\t`s0, `d0\n", 
+      emit(new AS::OperInstr("\taddq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->right), NULL), 
            NULL));
-      break;
+      return r;
     }
     case T::BinOp::MINUS_OP:{
-      emit(new AS::OperInstr("\tmovq\t`s0, `d0\n", 
+      emit(new AS::OperInstr("\tmovq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->left), NULL), 
            NULL));
-      emit(new AS::OperInstr("\tsubq\t`s0, `d0\n", 
+      emit(new AS::OperInstr("\tsubq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->right), NULL), 
            NULL));
-      break;
+      return r;
     }
     case T::BinOp::MUL_OP:{
-      emit(new AS::OperInstr("\tmovq\t`s0, `d0\n", 
+      emit(new AS::OperInstr("\tmovq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->left), NULL), 
            NULL));
-      emit(new AS::OperInstr("\timulq\t`s0, `d0\n", 
+      emit(new AS::OperInstr("\timulq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->right), NULL), 
            NULL));
-      break;
+      return r;
     }
     case T::BinOp::DIV_OP:{
-      emit(new AS::OperInstr("\tmovq\t`s0, `d0\n", 
+      emit(new AS::OperInstr("\tmovq\t`s0, `d0", 
            L(F::DIVIDEND(), NULL), 
            L(munchExp(bine->right), NULL), 
            NULL));
-      emit(new AS::OperInstr("\tcqto\n", 
+      emit(new AS::OperInstr("\tcqto", 
            L(F::DIVIDEND(), L(F::REMAINDER(), NULL)), 
            L(F::DIVIDEND(), NULL), 
            NULL));
-      emit(new AS::OperInstr("\tidivq\ts0\n", 
+      emit(new AS::OperInstr("\tidivq\ts0", 
             L(F::DIVIDEND(), L(F::REMAINDER(), NULL)), 
             L(munchExp(bine->left), L(F::DIVIDEND(), NULL)), 
             NULL));
       emit(new AS::MoveInstr("\tmovq\t`s0, `d0", 
             L(r, NULL), 
             L(F::DIVIDEND(), NULL)));
-      break;
+      return r;
     }
     default:{
       printf("invalid arithmatic operator\n");
@@ -120,25 +140,31 @@ static TEMP::Temp *munchExp(T::Exp *e) {
     return r;
   }
   case T::Exp::NAME:{
-    // TODO: how to deal with this case, should not happen?
-    assert(0);
-    // TEMP::Temp *r = TEMP::Temp::NewTemp();
-    // T::NameExp *ne = (T::NameExp *)e;
-    // ne->name->Name();
-    // emit(new AS::MoveInstr("\tmovq\t`s0, `d0\n", L(r, NULL), L(ne->name, NULL)));
+    // printf("case name");
+    T::NameExp *ne = (T::NameExp *)e;
+    // case: mov string ref to register
+    // case: call 
+    // case: jump
+    // only need to handle string reference
+    char instr[128];
+    sprintf(instr, "\tleaq\t%s(%%rip), `d0", ne->name->Name().c_str());
+    emit(new AS::OperInstr(instr, L(r, NULL), NULL, NULL));
+    return r;
   }
   case T::Exp::MEM:{
-    emit(new AS::MoveInstr("\tmovq\t(`s0), `d0\n", L(r, NULL), L(munchExp(e), NULL)));
+    // printf("case mem");
+    emit(new AS::MoveInstr("\tmovq\t(`s0), `d0", L(r, NULL), L(munchExp(static_cast<T::MemExp *>(e)->exp  ), NULL)));
     return r;
   }
   case T::Exp::CALL:{
+    // printf("case call");
     T::CallExp *callExp = static_cast<T::CallExp *>(e);
     T::NameExp *nameExp = static_cast<T::NameExp *>(callExp->fun);
     TEMP::TempList *calldefs = new TEMP::TempList(F::RV(), F::CallerRegs());
     TEMP::TempList *l = munchArgs(0, callExp->args);
     // NOTE: runtime link needs plt
-    emit(new AS::OperInstr("\tcall " + nameExp->name->Name() + "@plt\n", calldefs, L(munchExp(callExp->fun), l), NULL));
-    emit(new AS::MoveInstr("\tmovq\t`s0, `d0\n", L(r, NULL), L(F::RV(), NULL)));
+    emit(new AS::OperInstr("\tcall\t" + nameExp->name->Name() + "@plt", calldefs, l, NULL));
+    emit(new AS::MoveInstr("\tmovq\t`s0, `d0", L(r, NULL), L(F::RV(), NULL)));
     return r;
   }
   default:{
@@ -157,10 +183,11 @@ static TEMP::TempList* munchArgs(int off, T::ExpList *args) {
 
   while (args){
     if (cnt >= 6) {
-      emit(new AS::MoveInstr("\tpushq `s0\n", NULL, L(munchExp(args->head), NULL)));
+      // Should alloc space in caller frame, but not cover by test
+      // Worse is better
+      emit(new AS::OperInstr("\tpushq `s0", NULL, L(munchExp(args->head), NULL), NULL));
     } else {
-      emit(new AS::MoveInstr("\tmovq\t`d0, `s0\n", L(argregs->head, NULL), L(munchExp(args->head), NULL)));
-      cnt ++;
+      emit(new AS::MoveInstr("\tmovq\t`s0, `d0", L(argregs->head, NULL), L(munchExp(args->head), NULL)));
       if (!tl) {
         tl = new TEMP::TempList(argregs->head, NULL);
         tlPtr = tl;
@@ -169,6 +196,8 @@ static TEMP::TempList* munchArgs(int off, T::ExpList *args) {
         tlPtr->tail = t;
         tlPtr = t;
       }
+      cnt ++;
+      argregs = argregs->tail;
     }
     args = args->tail;
   }
@@ -184,12 +213,26 @@ static void munchStm(T::Stm *s) {
     T::Exp *dste = mvStm->dst;
     T::Exp *srce = mvStm->src;
     if (dste->kind == T::Exp::TEMP) {
-      emit(new AS::MoveInstr("\tmovq\t`s0, `d0\n", L(munchExp(dste), NULL), L(munchExp(srce), NULL)));
+      if (srce->kind == T::Exp::MEM) {
+        // move memory data to register
+        emit(new AS::MoveInstr("\tmovq\t(`s0), `d0", 
+                L(munchExp(dste), NULL), 
+                L(munchExp(static_cast<T::MemExp *>(srce)->exp), NULL)));
+      } else if (srce->kind == T::Exp::CONST){
+        // move immediate to register
+        char instr[128];
+        sprintf(instr, "\tmovq\t$%d, `d0", static_cast<T::ConstExp *>(srce)->consti);
+        emit(new AS::OperInstr(instr, 
+                L(munchExp(dste), NULL), 
+                NULL, NULL));
+      } else {
+        emit(new AS::MoveInstr("\tmovq\t`s0, `d0", L(munchExp(dste), NULL), L(munchExp(srce), NULL)));
+      }
     } else if(dste->kind == T::Exp::MEM) {
       T::MemExp *meme = (T::MemExp *)dste;
-      emit(new AS::MoveInstr("\tmovq\t(`s0), `d0\n", L(munchExp(meme->exp), NULL), L(munchExp(srce), NULL)));
+      emit(new AS::MoveInstr("\tmovq\t`s0, (`d0)", L(munchExp(meme->exp), NULL), L(munchExp(srce), NULL)));
     } else {
-      // should never go here
+      // A good translate would never go here
       assert(0);
     }
     break;
@@ -203,7 +246,7 @@ static void munchStm(T::Stm *s) {
     T::JumpStm *jumpStm = (T::JumpStm *)s;
     T::NameExp *namee = (T::NameExp *)jumpStm->exp;
     char inst[128];
-    sprintf(inst, "\tjmp %s", namee->name->Name().c_str());
+    sprintf(inst, "\tjmp\t%s", namee->name->Name().c_str());
     emit(new AS::OperInstr(inst, NULL, NULL, new AS::Targets(jumpStm->jumps)));
     break;
   }
@@ -234,14 +277,14 @@ static void munchStm(T::Stm *s) {
       assert(0);
       break;
     }
-    emit(new AS::OperInstr("\tcmpq\t`s1, `s0\n", NULL, L(munchExp(cs->left), L(munchExp(cs->right), NULL)), NULL));
+    emit(new AS::OperInstr("\tcmpq\t`s1, `s0", NULL, L(munchExp(cs->left), L(munchExp(cs->right), NULL)), NULL));
     emit(new AS::OperInstr(cjmp + cs->true_label->Name(), 
          NULL, NULL, new AS::Targets(new TEMP::LabelList(cs->true_label, NULL))));
     break;
   }
   case T::Stm::LABEL:{
     T::LabelStm *ls = (T::LabelStm *)s;
-    emit(new AS::LabelInstr(ls->label->Name() + ":\n", ls->label));
+    emit(new AS::LabelInstr(ls->label->Name(), ls->label));
     break;
   }
   case T::Stm::SEQ:{

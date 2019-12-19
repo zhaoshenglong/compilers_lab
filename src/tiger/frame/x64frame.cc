@@ -60,13 +60,16 @@ class X64Frame : public Frame {
   AccessList *locals;
   T::SeqStm  *saveFormalStm;
   int size;
-
-  X64Frame(TEMP::Label *name, U::BoolList *formalBools): Frame(){
+  std::string *framesize_str;
+  
+  X64Frame(TEMP::Label *name, U::BoolList *formalBools): Frame(name, formalBools), label(name) {
+    // framesize constant for each frame, ref by rsp
+    framesize_str = new std::string(name->Name() + "_fs");
     F::AccessList *accPtr = NULL;
     F::Access *acc;
     int cnt = 0;
     T::Exp *fp = new T::TempExp(F::FP());
-
+    
     // alloc formals
     while (formalBools) {
       acc = allocLocal(formalBools->head);
@@ -125,6 +128,9 @@ class X64Frame : public Frame {
     } else {
       return new InRegAccess(TEMP::Temp::NewTemp());
     }
+  }
+  std::string *getFramesizeStr() const override {
+    return framesize_str;
   }
 };
 
@@ -287,9 +293,15 @@ AS::InstrList *procEntryExit2(AS::InstrList *body) {
 
 // TODO: Add frame pointer adjust instructions
 AS::Proc *procEntryExit3(Frame *frame, AS::InstrList *body) {
-  char buf[100];
-  sprintf(buf, "PROCEDURE %s\n", frame->getName()->Name().c_str());
-  return new AS::Proc(buf, body, "END\n");
+
+  char prolog[256], epilog[256];
+  sprintf(prolog, "%s:\n", frame->getLabel().c_str());
+  sprintf(prolog, "%s\t.set\t%s, %d\n", prolog, frame->getFramesizeStr()->c_str(), frame->size);
+  sprintf(prolog, "%s\tsubq\t$%s, %%rsp\n", prolog, frame->getFramesizeStr()->c_str());
+  
+  sprintf(epilog, "\taddq\t$%s, %%rsp\n", frame->getFramesizeStr()->c_str());
+  sprintf(epilog, "%s\tret\n", epilog);
+  return new AS::Proc(prolog, body, epilog);
 }
 }  // namespace F
 

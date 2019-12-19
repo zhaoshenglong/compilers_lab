@@ -197,9 +197,8 @@ Level *Outermost() {
   static Level *lv = nullptr;
   if (lv != nullptr) return lv;
 
-  lv = new Level(nullptr, nullptr);
-  TEMP::Label *lab = TEMP::NewLabel();
-  lv->frame = F::newFrame(lab, NULL);
+  TEMP::Label *lab = TEMP::NamedLabel(std::string("tigermain"));
+  lv = Level::NewLevel(nullptr, lab, nullptr);
   return lv;
 }
 
@@ -237,12 +236,12 @@ TR::ExpAndTy SimpleVar::Translate(S::Table<E::EnvEntry> *venv,
   
   TR::Level *lg = ve->access->level;
   TR::Level *lf = level;
-  T::Exp *fp = new T::TempExp(F::FP());
+  T::Exp *staticlink = new T::TempExp(F::FP());
   while (lf != lg) {
-    fp = new T::MemExp(fp);
+    staticlink = new T::MemExp(staticlink);
     lf = lf->parent;
   }
-  exp = ve->access->access->ToExp(fp);
+  exp = ve->access->access->ToExp(staticlink);
   return TR::ExpAndTy(new TR::ExExp(exp), ty);
 }
 
@@ -381,14 +380,16 @@ TR::ExpAndTy CallExp::Translate(S::Table<E::EnvEntry> *venv,
     errormsg.Error(pos, "too many params in function %s", func->Name().c_str());
   }
   
+  argList = args;
   // Find static link if is not outerlevel, else don't use static link
   if(funcEntry->level == TR::Outermost()) {
     exp = F::externalCall(func->Name(), make_actual_list(venv, tenv, level, label, argList));
   } else {
     T::Exp *sl = new T::TempExp(F::FP());
-    while (level != funcEntry->level->parent) {
+    TR::Level *l = level;
+    while (l != funcEntry->level->parent) {
       sl = new T::MemExp(sl);
-      level = level->parent;
+      l = l->parent;
     }
 
     exp = new T::CallExp(
@@ -1124,7 +1125,9 @@ static T::ExpList *make_actual_list(S::Table<E::EnvEntry> *venv,
   if (!formals) {
     return NULL;
   }
-  return new T::ExpList(formals->head->Translate(venv, tenv, level, label).exp->UnEx(), 
+  TR::ExpAndTy expTy = formals->head->Translate(venv, tenv, level, label);
+
+  return new T::ExpList(expTy.exp->UnEx(), 
                         make_actual_list(venv, tenv, level, label, formals->tail));
 }
 

@@ -55,13 +55,14 @@ class Frame {
   AccessList *locals;     // saved local variables
   T::SeqStm  *saveFormalStm;  
   int size;               // frame size
-
-
+  std::string *framesize_str;
+  Frame(TEMP::Label *name, U::BoolList *formals) : label(name) {} 
   virtual T::SeqStm *getSaveEscFormalStm() const = 0;
   virtual TEMP::Label *getName() const = 0;
   virtual std::string getLabel() const = 0;
   virtual AccessList *getFormals() const = 0;
   virtual Access *allocLocal(bool escape) = 0;
+  virtual std::string *getFramesizeStr() const = 0;
 };
 
 class Access {
