@@ -26,46 +26,46 @@ void do_proc(FILE* out, F::ProcFrag* procFrag) {
   temp_map = TEMP::Map::Empty();
   // Init temp_map
 
-  //  printf("doProc for function %s:\n", this->frame->label->Name().c_str());
-  //  (new T::StmList(proc->body, nullptr))->Print(stdout);
-  //  printf("-------====IR tree=====-----\n");
+  //  printf("doProc for function %s:\n", procFrag->frame->label->Name().c_str());
+   (new T::StmList(procFrag->body, nullptr))->Print(stdout);
+   printf("-------====IR tree=====-----\n");
 
-  T::StmList* stmList = C::Linearize(procFrag->body);
+  // T::StmList* stmList = C::Linearize(procFrag->body);
   //  stmList->Print(stdout);
   //  printf("-------====Linearlized=====-----\n");  /* 8 */
-  struct C::Block blo = C::BasicBlocks(stmList);
+  // struct C::Block blo = C::BasicBlocks(stmList);
   //  C::StmListList* stmLists = blo.stmLists;
   //  for (; stmLists; stmLists = stmLists->tail) {
   //  	stmLists->head->Print(stdout);
   // 	printf("------====Basic block=====-------\n");
   //  }
-  stmList = C::TraceSchedule(blo);
+  // stmList = C::TraceSchedule(blo);
   //  stmList->Print(stdout);
   //  printf("-------====trace=====-----\n");
 
   // lab5&lab6: code generation
-  AS::InstrList* iList = CG::Codegen(procFrag->frame, stmList); /* 9 */
-  //  AS_printInstrList(stdout, iList, Temp::Map::LayerMap(temp_map,
-  //  Temp_name()));
+  // AS::InstrList* iList = CG::Codegen(procFrag->frame, stmList); /* 9 */
+  // //  AS_printInstrList(stdout, iList, Temp::Map::LayerMap(temp_map,
+  // //  Temp_name()));
 
-  // lab6: register allocation
-  //  printf("----======before RA=======-----\n");
-  RA::Result allocation = RA::RegAlloc(procFrag->frame, iList); /* 11 */
-  //  printf("----======after RA=======-----\n");
+  // // lab6: register allocation
+  // //  printf("----======before RA=======-----\n");
+  // RA::Result allocation = RA::RegAlloc(procFrag->frame, iList); /* 11 */
+  // //  printf("----======after RA=======-----\n");
 
-  AS::Proc* proc = F::procEntryExit3(procFrag->frame, allocation.il);
+  // AS::Proc* proc = F::procEntryExit3(procFrag->frame, allocation.il);
 
-  std::string procName = procFrag->frame->label->Name();
-  fprintf(out, ".globl %s\n", procName.c_str());
-  fprintf(out, ".type %s, @function\n", procName.c_str());
-  // prologue
-  fprintf(out, "%s", proc->prolog.c_str());
-  // body
-  proc->body->Print(out,
-                    TEMP::Map::LayerMap(temp_map, allocation.coloring));
-  // epilog
-  fprintf(out, "%s", proc->epilog.c_str());
-  fprintf(out, ".size %s, .-%s\n", procName.c_str(), procName.c_str());
+  // std::string procName = procFrag->frame->label->Name();
+  // fprintf(out, ".globl %s\n", procName.c_str());
+  // fprintf(out, ".type %s, @function\n", procName.c_str());
+  // // prologue
+  // fprintf(out, "%s", proc->prolog.c_str());
+  // // body
+  // proc->body->Print(out,
+  //                   TEMP::Map::LayerMap(temp_map, allocation.coloring));
+  // // epilog
+  // fprintf(out, "%s", proc->epilog.c_str());
+  // fprintf(out, ".size %s, .-%s\n", procName.c_str(), procName.c_str());
 }
 
 void do_str(FILE* out, F::StringFrag* strFrag) {

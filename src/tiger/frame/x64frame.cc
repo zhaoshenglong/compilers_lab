@@ -22,11 +22,111 @@ namespace
   TEMP::Temp *R15();
   const int ARG_REG_NUM = 6;
   const int CALLEE_REG_NUM = 6;
+
+  // Array of pointers which points to function that reurn TEMP::Temp *
   TEMP::Temp *(*argregs[ARG_REG_NUM])() = {RDI, RSI, RDX, RCX, R8, R9};
   TEMP::Temp *(*calleeregs[CALLEE_REG_NUM])() = {RBX, RBP, R12, R13, R14, R15};
 } // namespace  
 
 namespace F {
+class Frame;
+class InFrameAccess : public Access {
+ public:
+  int offset;
+
+  InFrameAccess(int offset) : Access(INFRAME), offset(offset) {}
+
+  T::Exp *ToExp(T::Exp *framePtr) const override {    
+    return new T::MemExp(new T::BinopExp(
+      T::BinOp::PLUS_OP, framePtr, new T::ConstExp(offset)
+    ));
+  }
+};
+
+class InRegAccess : public Access {
+ public:
+  TEMP::Temp* reg;
+
+  InRegAccess(TEMP::Temp* reg) : Access(INREG), reg(reg) {}
+  T::Exp *ToExp(T::Exp *framePtr) const override {
+    return new T::TempExp(reg);
+  }
+};
+
+class X64Frame : public Frame {
+ public:
+  TEMP::Label *label;
+  AccessList *formals;
+  AccessList *locals;
+  T::SeqStm  *saveFormalStm;
+  int size;
+
+  X64Frame(TEMP::Label *name, U::BoolList *formalBools): Frame(){
+    F::AccessList *accPtr = NULL;
+    F::Access *acc;
+    int cnt = 0;
+    T::Exp *fp = new T::TempExp(F::FP());
+
+    // alloc formals
+    while (formalBools) {
+      acc = allocLocal(formalBools->head);
+      if (!accPtr) {
+        formals = new F::AccessList(acc, NULL);
+        accPtr = formals;
+      } else {
+        F::AccessList *al = new F::AccessList(acc, NULL);
+        accPtr->tail = al;
+        accPtr = al;
+      }
+
+      // Move escape parameters to Frame
+      T::Stm *stm;
+      if (cnt < ARG_REG_NUM) {
+        stm = new T::MoveStm(
+                acc->ToExp(fp), 
+                new T::TempExp(argregs[cnt]()));
+      } else {
+        stm = new T::MoveStm(
+                acc->ToExp(fp), 
+                new T::BinopExp(
+                  T::BinOp::PLUS_OP, 
+                  new T::ConstExp((cnt - 5) * wordsize), 
+                  fp));
+      }
+
+      // NOTE: order here make no sense
+      if (formalBools->head) {
+        if (!saveFormalStm) {
+          saveFormalStm = new T::SeqStm(stm, new T::ExpStm(new T::ConstExp(0)));
+        } else {
+          saveFormalStm = new T::SeqStm(stm, saveFormalStm);
+        }
+      }
+      formalBools = formalBools->tail;
+      cnt++;
+    }
+  }
+  T::SeqStm *getSaveEscFormalStm() const override {
+    return saveFormalStm;
+  }
+  TEMP::Label *getName() const override {
+    return label;
+  }
+  std::string getLabel() const override {
+    return label->Name();
+  }
+  AccessList *getFormals() const override {
+    return formals;
+  }
+  Access *allocLocal(bool escape) override {
+    if (escape) {
+      size += wordsize;
+      return new InFrameAccess(-size);
+    } else {
+      return new InRegAccess(TEMP::Temp::NewTemp());
+    }
+  }
+};
 
 const int wordsize = 8;
 
@@ -71,11 +171,11 @@ TEMP::TempList *SpecialRegs() {
   static TEMP::TempList *specialRegs = NULL;
   if (!specialRegs) {
     specialRegs = new TEMP::TempList(F::SP(),
-                  new TEMP::TempList(F::FP(),
-                  new TEMP::TempList(F::RV(), nullptr)));;
+                  new TEMP::TempList(F::RV(), nullptr));;
   }
   return specialRegs;
 }
+
 TEMP::TempList *CalleeRegs() {
   static TEMP::TempList *calleeSaves = NULL;
   if (!calleeSaves) {
@@ -88,6 +188,7 @@ TEMP::TempList *CalleeRegs() {
   }
   return calleeSaves;
 }
+
 TEMP::TempList *ArgRegs() {
   static TEMP::TempList *argRegs = NULL;
   if (!argRegs) {
@@ -100,6 +201,7 @@ TEMP::TempList *ArgRegs() {
   }
   return argRegs;
 }
+
 TEMP::TempList *CallerRegs() {
   static TEMP::TempList *callerSaves = NULL;
   if (!callerSaves){
@@ -109,8 +211,7 @@ TEMP::TempList *CallerRegs() {
   return callerSaves;
 }
 
-TEMP::Map *tempMap;
-
+// P168, args must provided by the caller
 T::Exp *externalCall(std::string s, T::ExpList *args) {
   return new T::CallExp(
           new T::NameExp(
@@ -118,19 +219,22 @@ T::Exp *externalCall(std::string s, T::ExpList *args) {
             args);
 }
 
-F::StringFrag *String(TEMP::Label *lab, std::string str) {
+Frame *newFrame(TEMP::Label *name, U::BoolList *formals) {
+  return new X64Frame(name, formals);
+}
+
+StringFrag *String(TEMP::Label *lab, std::string str) {
   return new F::StringFrag(lab, str);
 }
 
-F::ProcFrag *NewProcFrag(T::Stm *body, F::Frame *frame) {
+ProcFrag *NewProcFrag(T::Stm *body, Frame *frame) {
   return new F::ProcFrag(body, frame); 
 }
 
-T::Stm *procEntryExit1(F::Frame *frame, T::Stm *stm) {
-  
-  T::Stm *saveFormalsStm = frame->getSaveEscFormalStm();
-  if (!saveFormalsStm) {
-    saveFormalsStm = new T::ExpStm(new T::ConstExp(0));
+T::Stm *procEntryExit1(Frame *frame, T::Stm *stm) {
+  T::Stm *saveFormalStm = frame->getSaveEscFormalStm();
+  if (!saveFormalStm) {
+    saveFormalStm = new T::ExpStm(new T::ConstExp(0));
   }
   T::Exp *fp = new T::TempExp(F::FP());
   // save & restore callee save regs
@@ -161,7 +265,7 @@ T::Stm *procEntryExit1(F::Frame *frame, T::Stm *stm) {
   }
 
   return new T::SeqStm(
-          saveFormalsStm, 
+          saveFormalStm, 
           new T::SeqStm(
             saveCalleeStm, 
             new T::SeqStm(
@@ -181,111 +285,12 @@ AS::InstrList *procEntryExit2(AS::InstrList *body) {
             new AS::OperInstr("", NULL, returnSink, NULL), NULL));
 }
 
-AS::Proc *procEntryExit3(F::Frame *frame, AS::InstrList *body) {
-  return NULL;
+// TODO: Add frame pointer adjust instructions
+AS::Proc *procEntryExit3(Frame *frame, AS::InstrList *body) {
+  char buf[100];
+  sprintf(buf, "PROCEDURE %s\n", frame->getName()->Name().c_str());
+  return new AS::Proc(buf, body, "END\n");
 }
-
-class X64Frame : public Frame {
- public:
-  TEMP::Label *label;
-  AccessList *formals;
-  AccessList *locals;
-  T::SeqStm  *saveFormalStm;
-  int size;
-
-  X64Frame(TEMP::Label *name, U::BoolList *formalBools): Frame(name, formalBools), label(name) {
-    F::AccessList *accPtr = NULL;
-    F::Access *acc;
-    int cnt = 0;
-    T::Exp *fp = new T::TempExp(F::FP());
-
-    // alloc formals
-    while (formalBools) {
-      acc = allocLocal(formalBools->head);
-      if (!accPtr) {
-        formals = new F::AccessList(acc, NULL);
-        accPtr = formals;
-      } else {
-        F::AccessList *al = new F::AccessList(acc, NULL);
-        accPtr->tail = al;
-        accPtr = al;
-      }
-
-      // Move escape parameters to Frame
-      T::Stm *stm;
-      if (cnt < ARG_REG_NUM) {
-        stm = new T::MoveStm(
-                acc->ToExp(fp), 
-                new T::TempExp(argregs[cnt]()));
-      } else {
-        stm = new T::MoveStm(
-                acc->ToExp(fp), 
-                new T::BinopExp(
-                  T::BinOp::PLUS_OP, 
-                  new T::ConstExp((cnt - 5) * wordsize), 
-                  fp));
-      }
-
-      // NOTE: order here make no sense
-      if (!saveFormalStm) {
-        saveFormalStm = new T::SeqStm(stm, NULL);
-      } else {
-        saveFormalStm = new T::SeqStm(stm, saveFormalStm);
-      }
-      formalBools = formalBools->tail;
-      cnt++;
-    }
-  }
-  T::Stm *getSaveEscFormalStm() const override {
-    return saveFormalStm;
-  }
-  TEMP::Label *getName() const override {
-    return label;
-  }
-  std::string getLabel() const override {
-    return label->Name();
-  }
-  AccessList *getFormals() const override {
-    return formals;
-  }
-  Access *allocLocal(bool escape) override {
-    if (escape) {
-      size += wordsize;
-      return new InFrameAccess(-size);
-    } else {
-      return new InRegAccess(TEMP::Temp::NewTemp());
-    }
-  }
-};
-
-class InFrameAccess : public Access {
- public:
-  int offset;
-
-  InFrameAccess(int offset) : Access(INFRAME), offset(offset) {}
-
-  T::Exp *ToExp(T::Exp *framePtr) const override {    
-    return new T::MemExp(new T::BinopExp(
-      T::BinOp::PLUS_OP, framePtr, new T::ConstExp(offset)
-    ));
-  }
-};
-
-class InRegAccess : public Access {
- public:
-  TEMP::Temp* reg;
-
-  InRegAccess(TEMP::Temp* reg) : Access(INREG), reg(reg) {}
-  T::Exp *ToExp(T::Exp *framePtr) const override {
-    return new T::TempExp(reg);
-  }
-};
-
-
-F::Frame *newFrame(TEMP::Label *name, U::BoolList *formals) {
-  return new X64Frame(name, formals);
-}
-
 }  // namespace F
 
 namespace   

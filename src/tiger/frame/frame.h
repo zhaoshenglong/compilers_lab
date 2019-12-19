@@ -7,48 +7,61 @@
 #include "tiger/translate/tree.h"
 #include "tiger/util/util.h"
 
+// forward declarations
+
+namespace AS{
+  class InstrList;
+  class Proc;
+} // namespace AS;
 
 namespace F {
+class Frame;
+class Frag;
+class StringFrag;
+class ProcFrag;
+class FragList;
+class Access;
+class AccessList;
 
 extern const int wordsize;
 TEMP::Temp *FP();
 TEMP::Temp *RV();
 TEMP::Temp *SP();
-TEMP::Temp *DIVIDEND();   // special regs for division in X86_64, rax
-TEMP::Temp *REMAINDER();  // special regs for division in X86_64, rdx
-TEMP::TempList *registers();
-TEMP::TempList *SpecialRegs();
-TEMP::TempList *CalleeRegs();
-TEMP::TempList *ArgRegs();
-TEMP::TempList *CallerRegs();
+TEMP::Temp *DIVIDEND();   // special regs for division in X86_64, %rax
+TEMP::Temp *REMAINDER();  // special regs for division in X86_64, %rdx
+TEMP::TempList *registers();  
+TEMP::TempList *SpecialRegs();  // rsp, rax
+TEMP::TempList *CalleeRegs();   // rbp, rbx, r12-r15
+TEMP::TempList *ArgRegs();      // rdi, rsi, rdx, rcx, r8, r9
+TEMP::TempList *CallerRegs();   // r10, r11
 
-TEMP::Map *tempMap();
+// TODO: implement temp map
+TEMP::Map *tempMap();         
 
-F::Frame *newFrame(TEMP::Label *, U::BoolList *);
-T::Exp *externalCall(std::string s, T::ExpList * args);
-F::StringFrag *String(TEMP::Label *lab, std::string str);
-F::ProcFrag *NewProcFrag(T::Stm *body, F::Frame *frame);
+F::Frame *newFrame(TEMP::Label *, U::BoolList *); 
+T::Exp *externalCall(std::string s, T::ExpList * args);   // call external func, no static links
+F::StringFrag *String(TEMP::Label *lab, std::string str); // create new string fragment(useless)
+F::ProcFrag *NewProcFrag(T::Stm *body, F::Frame *frame);  // create new proc fragment
 
-T::Stm *procEntryExit1(F::Frame *frame, T::Stm *stm);
-AS::InstrList *procEntryExit2(AS::InstrList *body);
-AS::Proc *procEntryExit3(F::Frame *frame, AS::InstrList *body);
+T::Stm *procEntryExit1(F::Frame *frame, T::Stm *stm);     // P171, 268: 4. 5. (6. 7.) 8
+AS::InstrList *procEntryExit2(AS::InstrList *body);       // P215
+AS::Proc *procEntryExit3(F::Frame *frame, AS::InstrList *body); // P171, P216, P269: 1.2.3.9.10.11
 
 class Frame {
   // Base class
  public:
   TEMP::Label *label;
-  AccessList *formals;
-  AccessList *locals;
-  T::SeqStm  *saveFormalStm;
-  int size;
+  AccessList *formals;    // saved parameters
+  AccessList *locals;     // saved local variables
+  T::SeqStm  *saveFormalStm;  
+  int size;               // frame size
 
-  Frame(TEMP::Label *name, U::BoolList *f) : label(name){};
 
-  virtual T::Stm *getSaveEscFormalStm() const = 0;
+  virtual T::SeqStm *getSaveEscFormalStm() const = 0;
   virtual TEMP::Label *getName() const = 0;
   virtual std::string getLabel() const = 0;
   virtual AccessList *getFormals() const = 0;
-  virtual Access *allocLocal(bool escape);
+  virtual Access *allocLocal(bool escape) = 0;
 };
 
 class Access {
@@ -59,8 +72,6 @@ class Access {
 
   Access(Kind kind) : kind(kind) {}
 
-  // Hints: You may add interface like
-  //        `virtual T::Exp* ToExp(T::Exp* framePtr) const = 0`
   virtual T::Exp* ToExp(T::Exp* framePtr) const = 0;
 };
 
