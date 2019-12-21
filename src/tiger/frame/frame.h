@@ -35,7 +35,6 @@ TEMP::TempList *CalleeRegs();   // rbp, rbx, r12-r15
 TEMP::TempList *ArgRegs();      // rdi, rsi, rdx, rcx, r8, r9
 TEMP::TempList *CallerRegs();   // r10, r11
 
-// TODO: implement temp map
 TEMP::Map *tempMap();         
 
 F::Frame *newFrame(TEMP::Label *, U::BoolList *); 
@@ -63,6 +62,7 @@ class Frame {
   virtual AccessList *getFormals() const = 0;
   virtual Access *allocLocal(bool escape) = 0;
   virtual std::string *getFramesizeStr() const = 0;
+  virtual int getSize() const = 0;
 };
 
 class Access {
@@ -74,6 +74,7 @@ class Access {
   Access(Kind kind) : kind(kind) {}
 
   virtual T::Exp* ToExp(T::Exp* framePtr) const = 0;
+  virtual int getOffset() const = 0;
 };
 
 

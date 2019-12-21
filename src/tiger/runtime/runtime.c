@@ -11,7 +11,7 @@ long *initArray(int size, int init) {
   return a;
 }
 
-int *allocRecord(int size) {
+long *allocRecord(int size) {
   int i;
   long *p, *a;
   p = a = (long *)malloc(size);

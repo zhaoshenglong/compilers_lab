@@ -23,12 +23,12 @@ namespace {
 TEMP::Map* temp_map;
 
 void do_proc(FILE* out, F::ProcFrag* procFrag) {
-  temp_map = TEMP::Map::Empty();
+  temp_map = F::tempMap();
   // Init temp_map
 
-  //  printf("doProc for function %s:\n", procFrag->frame->label->Name().c_str());
-  //  (new T::StmList(procFrag->body, nullptr))->Print(stdout);
-  //  printf("-------====IR tree=====-----\n");
+   printf("doProc for function %s:\n", procFrag->frame->label->Name().c_str());
+   (new T::StmList(procFrag->body, nullptr))->Print(stdout);
+   printf("-------====IR tree=====-----\n");
 
   T::StmList* stmList = C::Linearize(procFrag->body);
   //  stmList->Print(stdout);
@@ -36,8 +36,8 @@ void do_proc(FILE* out, F::ProcFrag* procFrag) {
   struct C::Block blo = C::BasicBlocks(stmList);
    C::StmListList* stmLists = blo.stmLists;
    for (; stmLists; stmLists = stmLists->tail) {
-   	// stmLists->head->Print(stdout);
-  	// printf("------====Basic block=====-------\n");
+   	stmLists->head->Print(stdout);
+  	printf("------====Basic block=====-------\n");
    }
   stmList = C::TraceSchedule(blo);
    stmList->Print(stdout);

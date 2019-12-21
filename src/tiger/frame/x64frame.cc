@@ -41,6 +41,9 @@ class InFrameAccess : public Access {
       T::BinOp::PLUS_OP, framePtr, new T::ConstExp(offset)
     ));
   }
+  int getOffset() const override {
+    return offset;
+  }
 };
 
 class InRegAccess : public Access {
@@ -50,6 +53,9 @@ class InRegAccess : public Access {
   InRegAccess(TEMP::Temp* reg) : Access(INREG), reg(reg) {}
   T::Exp *ToExp(T::Exp *framePtr) const override {
     return new T::TempExp(reg);
+  }
+  int getOffset() const override {
+    return 0;
   }
 };
 
@@ -62,7 +68,7 @@ class X64Frame : public Frame {
   int size;
   std::string *framesize_str;
   
-  X64Frame(TEMP::Label *name, U::BoolList *formalBools): Frame(name, formalBools), label(name) {
+  X64Frame(TEMP::Label *name, U::BoolList *formalBools): Frame(name, formalBools), label(name), size(0) {
     // framesize constant for each frame, ref by rsp
     framesize_str = new std::string(name->Name() + "_fs");
     F::AccessList *accPtr = NULL;
@@ -131,6 +137,9 @@ class X64Frame : public Frame {
   }
   std::string *getFramesizeStr() const override {
     return framesize_str;
+  }
+  int getSize() const override {
+    return size;
   }
 };
 
@@ -217,6 +226,30 @@ TEMP::TempList *CallerRegs() {
   return callerSaves;
 }
 
+TEMP::Map *tempMap() {
+  static TEMP::Map *tm = NULL;
+  if (!tm) {
+    tm = TEMP::Map::Empty();
+    tm->Enter(RAX(), new std::string("%rax"));
+    tm->Enter(RBX(), new std::string("%rbx"));
+    tm->Enter(RCX(), new std::string("%rcx"));
+    tm->Enter(RDX(), new std::string("%rdx"));
+    tm->Enter(RDI(), new std::string("%rdi"));
+    tm->Enter(RSI(), new std::string("%rsi"));
+    tm->Enter(RSP(), new std::string("%rsp"));
+    tm->Enter(RBP(), new std::string("%rbp"));
+    tm->Enter(R8(),  new std::string("%r8"));
+    tm->Enter(R9(),  new std::string("%r9"));
+    tm->Enter(R10(), new std::string("%r10"));
+    tm->Enter(R11(), new std::string("%r11"));
+    tm->Enter(R12(), new std::string("%r12"));
+    tm->Enter(R13(), new std::string("%r13"));
+    tm->Enter(R14(), new std::string("%r14"));
+    tm->Enter(R15(), new std::string("%r15"));
+  } 
+  return tm;
+}
+
 // P168, args must provided by the caller
 T::Exp *externalCall(std::string s, T::ExpList *args) {
   return new T::CallExp(
@@ -296,7 +329,7 @@ AS::Proc *procEntryExit3(Frame *frame, AS::InstrList *body) {
 
   char prolog[256], epilog[256];
   sprintf(prolog, "%s:\n", frame->getLabel().c_str());
-  sprintf(prolog, "%s\t.set\t%s, %d\n", prolog, frame->getFramesizeStr()->c_str(), frame->size);
+  sprintf(prolog, "%s\t.set\t%s, %d\n", prolog, frame->getFramesizeStr()->c_str(), frame->getSize());
   sprintf(prolog, "%s\tsubq\t$%s, %%rsp\n", prolog, frame->getFramesizeStr()->c_str());
   
   sprintf(epilog, "\taddq\t$%s, %%rsp\n", frame->getFramesizeStr()->c_str());

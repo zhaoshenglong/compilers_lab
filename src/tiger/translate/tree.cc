@@ -141,7 +141,7 @@ RelOp notRel(RelOp r) {
       return LE_OP;
     case LE_OP:
       return GT_OP;
-    // case ULT_OP:
+    case ULT_OP:
       return UGE_OP;
     case UGE_OP:
       return ULT_OP;

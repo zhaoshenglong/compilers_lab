@@ -1,5 +1,6 @@
 #include "tiger/codegen/codegen.h"
-
+#include <map>
+#include <vector>
 
 namespace 
 {
@@ -13,6 +14,18 @@ namespace
   static TEMP::TempList *munchArgs(int off, T::ExpList *args);
   static TEMP::Temp *munchExp(T::Exp *e);
   static void munchStm(T::Stm *s);
+
+  // TODO: remove in lab6
+  static AS::InstrList *spillAll(F::Frame *f, AS::InstrList *stmList);
+  static std::map<TEMP::Temp *, int> temp_map;
+  static std::vector<TEMP::Temp *> x64regs;
+  static void insertAfter(AS::InstrList *origin, AS::InstrList *il);
+  static void initRegMap();
+  static bool isX64regs(TEMP::Temp *);
+  static TEMP::Temp *R10();
+  static TEMP::Temp *R11();
+  static const char *load_template = "\tmovq\t(%s - %d)(%%rsp), `d0";
+  static const char *store_template = "\tmovq\t`s0, (%s - %d)(%%rsp)";
 } // namespace 
 
 namespace CG {
@@ -27,6 +40,7 @@ AS::InstrList* Codegen(F::Frame* f, T::StmList* stmList) {
   }
   list = iList; 
   
+  spillAll(f, list);
   // clear in case overlay the next frame
   framesize_str = NULL;
   iList = last = NULL; 
@@ -57,18 +71,13 @@ static TEMP::Temp *munchExp(T::Exp *e) {
     T::ConstExp *ce = static_cast<T::ConstExp *>(e);
     sprintf(instr, "\tmovq\t$%d, `d0", ce->consti);
     emit(new AS::MoveInstr(std::string(instr), L(r, NULL), NULL));
-    // printf("case const");
     return r;
   }
   case T::Exp::TEMP:{
     T::TempExp *te = static_cast<T::TempExp *>(e);
     // transfer all FP inference into SP + framesize
-    // printf("case temp");
     if (te->temp == F::FP()) {
       char instr[128];
-      if (!framesize_str) {
-        printf("framesize str is null!\n");
-      }
       sprintf(instr, "\tleaq\t%s(%%rsp), `d0", framesize_str->c_str());
       emit(new AS::OperInstr(instr, L(r, NULL), NULL, NULL));
       return r;
@@ -78,14 +87,12 @@ static TEMP::Temp *munchExp(T::Exp *e) {
   }
   case T::Exp::BINOP:{
     T::BinopExp *bine = static_cast<T::BinopExp*>(e);
-    // printf("case binop");
     switch (bine->op)
     {
     case T::BinOp::PLUS_OP:{
-      emit(new AS::OperInstr("\tmovq\t`s0, `d0", 
+      emit(new AS::MoveInstr("\tmovq\t`s0, `d0", 
            L(r, NULL), 
-           L(munchExp(bine->left), NULL), 
-           NULL));
+           L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\taddq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->right), NULL), 
@@ -93,10 +100,9 @@ static TEMP::Temp *munchExp(T::Exp *e) {
       return r;
     }
     case T::BinOp::MINUS_OP:{
-      emit(new AS::OperInstr("\tmovq\t`s0, `d0", 
+      emit(new AS::MoveInstr("\tmovq\t`s0, `d0", 
            L(r, NULL), 
-           L(munchExp(bine->left), NULL), 
-           NULL));
+           L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\tsubq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->right), NULL), 
@@ -104,10 +110,9 @@ static TEMP::Temp *munchExp(T::Exp *e) {
       return r;
     }
     case T::BinOp::MUL_OP:{
-      emit(new AS::OperInstr("\tmovq\t`s0, `d0", 
+      emit(new AS::MoveInstr("\tmovq\t`s0, `d0", 
            L(r, NULL), 
-           L(munchExp(bine->left), NULL), 
-           NULL));
+           L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\timulq\t`s0, `d0", 
            L(r, NULL), 
            L(munchExp(bine->right), NULL), 
@@ -115,17 +120,16 @@ static TEMP::Temp *munchExp(T::Exp *e) {
       return r;
     }
     case T::BinOp::DIV_OP:{
-      emit(new AS::OperInstr("\tmovq\t`s0, `d0", 
+      emit(new AS::MoveInstr("\tmovq\t`s0, `d0", 
            L(F::DIVIDEND(), NULL), 
-           L(munchExp(bine->right), NULL), 
-           NULL));
+           L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\tcqto", 
            L(F::DIVIDEND(), L(F::REMAINDER(), NULL)), 
            L(F::DIVIDEND(), NULL), 
            NULL));
-      emit(new AS::OperInstr("\tidivq\ts0", 
+      emit(new AS::OperInstr("\tidivq\t`s0", 
             L(F::DIVIDEND(), L(F::REMAINDER(), NULL)), 
-            L(munchExp(bine->left), L(F::DIVIDEND(), NULL)), 
+            L(munchExp(bine->right), L(F::DIVIDEND(), NULL)), 
             NULL));
       emit(new AS::MoveInstr("\tmovq\t`s0, `d0", 
             L(r, NULL), 
@@ -140,7 +144,6 @@ static TEMP::Temp *munchExp(T::Exp *e) {
     return r;
   }
   case T::Exp::NAME:{
-    // printf("case name");
     T::NameExp *ne = (T::NameExp *)e;
     // case: mov string ref to register
     // case: call 
@@ -152,12 +155,10 @@ static TEMP::Temp *munchExp(T::Exp *e) {
     return r;
   }
   case T::Exp::MEM:{
-    // printf("case mem");
     emit(new AS::MoveInstr("\tmovq\t(`s0), `d0", L(r, NULL), L(munchExp(static_cast<T::MemExp *>(e)->exp  ), NULL)));
     return r;
   }
   case T::Exp::CALL:{
-    // printf("case call");
     T::CallExp *callExp = static_cast<T::CallExp *>(e);
     T::NameExp *nameExp = static_cast<T::NameExp *>(callExp->fun);
     TEMP::TempList *calldefs = new TEMP::TempList(F::RV(), F::CallerRegs());
@@ -222,15 +223,15 @@ static void munchStm(T::Stm *s) {
         // move immediate to register
         char instr[128];
         sprintf(instr, "\tmovq\t$%d, `d0", static_cast<T::ConstExp *>(srce)->consti);
-        emit(new AS::OperInstr(instr, 
+        emit(new AS::MoveInstr(instr, 
                 L(munchExp(dste), NULL), 
-                NULL, NULL));
+                NULL));
       } else {
         emit(new AS::MoveInstr("\tmovq\t`s0, `d0", L(munchExp(dste), NULL), L(munchExp(srce), NULL)));
       }
     } else if(dste->kind == T::Exp::MEM) {
       T::MemExp *meme = (T::MemExp *)dste;
-      emit(new AS::MoveInstr("\tmovq\t`s0, (`d0)", L(munchExp(meme->exp), NULL), L(munchExp(srce), NULL)));
+      emit(new AS::MoveInstr("\tmovq\t`s0, (`s1)", NULL, L(munchExp(srce), L(munchExp(meme->exp), NULL))));
     } else {
       // A good translate would never go here
       assert(0);
@@ -295,5 +296,179 @@ static void munchStm(T::Stm *s) {
   default:
     break;
   }
+}
+
+static AS::InstrList *spillAll(F::Frame *f, AS::InstrList *instrList) {
+  temp_map.clear();
+  if (x64regs.size() <= 0) {
+    initRegMap();
+  }
+  AS::InstrList *prev = new AS::InstrList(
+      new AS::OperInstr("nop", NULL, NULL, NULL), instrList);
+  AS::InstrList *list = prev;
+  AS::InstrList *il = instrList;
+
+  while(il) {
+    if (il->head->kind == AS::Instr::MOVE) {
+      AS::MoveInstr *mis = static_cast<AS::MoveInstr *>(il->head);
+      if (!mis->dst) {
+        assert(mis->src && mis->src->tail);
+        TEMP::Temp *s1 = mis->src->head;
+        TEMP::Temp *s2 = mis->src->tail->head;
+        if (!isX64regs(s1)) {
+          // load into r10 & replace s1 into r10
+          assert(temp_map[s1]);
+          char instr[128];
+          sprintf(instr, load_template, framesize_str->c_str(), temp_map[s1]);
+          insertAfter(prev, new AS::InstrList(
+                        new AS::MoveInstr(instr, L(R10(), NULL), NULL), NULL));
+          prev = prev->tail;
+          mis->src->head = R10();
+        }
+        if (!isX64regs(s2)) {
+          // load into r11 & replace s2 into r11
+          assert(temp_map[s2]);
+          char instr[128];
+          sprintf(instr, load_template, framesize_str->c_str(), temp_map[s2]);
+          insertAfter(prev, new AS::InstrList(
+                        new AS::MoveInstr(instr, L(R11(), NULL), NULL), NULL));
+          prev = prev->tail;
+          mis->src->tail->head = R11();
+        }
+      } else {
+        TEMP::Temp *s;
+        TEMP::Temp *d = mis->dst->head;
+        if (mis->src) {
+          s = mis->src->head;
+          if (!isX64regs(s)) {
+            assert(temp_map[s]);
+            char instr[128];
+            sprintf(instr, load_template, framesize_str->c_str(), temp_map[s]);
+            insertAfter(prev, new AS::InstrList(
+                new AS::MoveInstr(instr, L(R10(), NULL), NULL), NULL));
+            prev = prev->tail;
+            mis->src->head = R10();
+          }
+        }
+
+        if (!isX64regs(d)) {
+          // alloc space for temporary
+          if(!temp_map[d]) {
+            f->allocLocal(true);
+            temp_map[d] = f->getSize();
+          }
+          char instr[128];
+          sprintf(instr, load_template, framesize_str->c_str(), temp_map[d]);
+          insertAfter(prev, new AS::InstrList(
+              new AS::MoveInstr(instr, L(R11(), NULL), NULL), NULL));
+          prev = prev->tail;
+          mis->dst->head = R11();
+          sprintf(instr, store_template, framesize_str->c_str(), temp_map[d]);
+          insertAfter(il, new AS::InstrList(new AS::MoveInstr(instr, NULL, L(R11(), NULL)), NULL));
+          il = il->tail;
+        }
+      }
+    } else if (il->head->kind == AS::Instr::OPER) {
+      AS::OperInstr *opis = static_cast<AS::OperInstr*>(il->head);
+      if(opis->assem.find("call") == opis->assem.npos
+         &&opis->assem.find("j") == opis->assem.npos) {
+        if (opis->src) {
+          TEMP::Temp *s1 = opis->src->head;
+          if (!isX64regs(s1)) {
+            assert(temp_map[s1]);
+            // load to r10
+            char instr[128];
+            sprintf(instr, load_template, framesize_str->c_str(), temp_map[s1]);
+            insertAfter(prev, new AS::InstrList(
+              new AS::MoveInstr(instr, L(R10(), NULL), NULL), NULL));
+            prev = prev->tail;
+            opis->src->head = R10();
+          }
+          if(opis->src->tail) {
+            TEMP::Temp *s2 = opis->src->tail->head;
+            if (opis->assem.find("idivq") == opis->assem.npos) {
+              assert(!opis->dst );
+            }
+            if (!isX64regs(s2)) {
+              // load s2 to r11
+              assert(temp_map[s2]);
+              char instr[128];
+              sprintf(instr, load_template, framesize_str->c_str(), temp_map[s2]);
+              insertAfter(prev, new AS::InstrList(
+                new AS::MoveInstr(instr, L(R11(), NULL), NULL), NULL));
+              prev = prev->tail;
+              opis->src->tail->head = R11();
+            }
+          }
+        }
+        if (opis->dst) {
+          if(!isX64regs(opis->dst->head)) {
+            // move dst to r11
+            TEMP::Temp *d = opis->dst->head;
+            if (!temp_map[d]) {
+              f->allocLocal(true);
+              temp_map[d] = f->getSize();
+            }
+            // load to r11
+            char instr[128];
+            sprintf(instr, load_template, framesize_str->c_str(), temp_map[d]);
+            insertAfter(prev, new AS::InstrList(
+                new AS::MoveInstr(instr, L(R11(), NULL), NULL), NULL));
+            // store r11 to frame
+            prev = prev->tail;
+            sprintf(instr, store_template, framesize_str->c_str(), temp_map[d]);
+            insertAfter(il, new AS::InstrList(
+                new AS::MoveInstr(instr, NULL, L(R11(), NULL)), NULL));
+            il = il->tail;
+            opis->dst->head = R11();
+          }
+        }
+      }
+    } else {
+      // label instr use no regs
+    }
+    // next iteration
+    prev = il;
+    il = il->tail;
+  }
+  return list->tail;
+}
+
+static void initRegMap() {
+  TEMP::TempList *regs = F::registers();
+  while (regs){
+    x64regs.push_back(regs->head);
+    regs = regs->tail;
+  }
+}
+
+static bool isX64regs(TEMP::Temp *reg) {
+  for (std::vector<TEMP::Temp *>::iterator it = x64regs.begin(); 
+        it != x64regs.end(); it++) {
+    if ( *it == reg) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void insertAfter(AS::InstrList *origin, AS::InstrList *il) {
+  il->tail = origin->tail;
+  origin->tail = il;
+}
+
+static TEMP::Temp *R10() {
+  TEMP::Temp *r10 = NULL;
+  if (!r10) {
+    r10 = F::CallerRegs()->head;
+  }
+  return r10;
+}
+static TEMP::Temp *R11() {
+  TEMP::Temp *r11 = NULL;
+  if (!r11) {
+    r11 = F::CallerRegs()->tail->head;
+  }
+  return r11;
 }
 } // namespace

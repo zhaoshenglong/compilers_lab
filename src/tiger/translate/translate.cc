@@ -173,11 +173,12 @@ class CxExp : public Exp {
     do_patch(cx.trues, t);
     do_patch(cx.falses, f);
     return new T::EseqExp(new T::MoveStm(new T::TempExp(r), new T::ConstExp(1)),
-                  new T::EseqExp(cx.stm, new T::EseqExp(
-                    new T::LabelStm(f),
-                    new T::EseqExp(new T::MoveStm(
-                      new T::TempExp(r), new T::ConstExp(0)), 
-                      new T::EseqExp(new T::LabelStm(t), new T::TempExp(r))))));
+                  new T::EseqExp(cx.stm, 
+                    new T::EseqExp(
+                      new T::LabelStm(f),
+                      new T::EseqExp(new T::MoveStm(
+                        new T::TempExp(r), new T::ConstExp(0)), 
+                        new T::EseqExp(new T::LabelStm(t), new T::TempExp(r))))));
   }
   T::Stm *UnNx() const override {
     /* True or False, jump to next stm or exp */
@@ -238,7 +239,7 @@ TR::ExpAndTy SimpleVar::Translate(S::Table<E::EnvEntry> *venv,
   TR::Level *lf = level;
   T::Exp *staticlink = new T::TempExp(F::FP());
   while (lf != lg) {
-    staticlink = new T::MemExp(staticlink);
+    staticlink = new T::MemExp(new T::BinopExp(T::BinOp::MINUS_OP, staticlink, new T::ConstExp(8)));
     lf = lf->parent;
   }
   exp = ve->access->access->ToExp(staticlink);
@@ -264,9 +265,10 @@ TR::ExpAndTy FieldVar::Translate(S::Table<E::EnvEntry> *venv,
   {
     if (!fieldTy->head->name->Name().compare(sym->Name())){
       ty = fieldTy->head->ty;
+      break;
     }
-    fieldTy = fieldTy->tail;
     off += F::wordsize;
+    fieldTy = fieldTy->tail;
   }
   if (!ty) {
     errormsg.Error(pos, "field %s doesn't exist", sym->Name().c_str());  
@@ -278,7 +280,7 @@ TR::ExpAndTy FieldVar::Translate(S::Table<E::EnvEntry> *venv,
   exp = new T::MemExp(
           new T::BinopExp(
             T::BinOp::PLUS_OP, 
-            new T::MemExp(rec.exp->UnEx()), 
+            rec.exp->UnEx(), 
             new T::ConstExp(off)));
   return TR::ExpAndTy(new TR::ExExp(exp), ty);
 }
@@ -306,7 +308,7 @@ TR::ExpAndTy SubscriptVar::Translate(S::Table<E::EnvEntry> *venv,
     exp = new T::MemExp(
             new T::BinopExp(
               T::BinOp::PLUS_OP, 
-              new T::MemExp(arr.exp->UnEx()),
+              arr.exp->UnEx(),
               new T::BinopExp(
                 T::BinOp::MUL_OP, 
                 new T::ConstExp(F::wordsize),
@@ -388,7 +390,7 @@ TR::ExpAndTy CallExp::Translate(S::Table<E::EnvEntry> *venv,
     T::Exp *sl = new T::TempExp(F::FP());
     TR::Level *l = level;
     while (l != funcEntry->level->parent) {
-      sl = new T::MemExp(sl);
+      sl = new T::MemExp(new T::BinopExp(T::BinOp::MINUS_OP, sl, new T::ConstExp(8)));
       l = l->parent;
     }
 
@@ -450,7 +452,24 @@ TR::ExpAndTy OpExp::Translate(S::Table<E::EnvEntry> *venv,
       if (lexpTy.exp == INVALID_EXP() || rexpTy .exp == INVALID_EXP()) {
         return TR::ExpAndTy(INVALID_EXP(), TY::VoidTy::Instance());
       }
-      T::CjumpStm *stm = new T::CjumpStm(relOperMap(oper), lexpTy.exp->UnEx(), rexpTy.exp->UnEx(), NULL, NULL);
+      T::CjumpStm *stm;
+      if (lexpTy.ty->IsSameType(TY::StringTy::Instance())) {
+        // only support Equal / Inequal, P523Q
+        assert(oper == A::EQ_OP);
+        stm = new T::CjumpStm(
+                T::RelOp::EQ_OP, 
+                  new T::ConstExp(1), 
+                  F::externalCall(
+                    "stringEqual", 
+                    new T::ExpList(lexpTy.exp->UnEx(), 
+                    new T::ExpList(rexpTy.exp->UnEx(), NULL))), NULL, NULL);
+      } else {
+        stm = new T::CjumpStm(
+                relOperMap(oper), 
+                lexpTy.exp->UnEx(), 
+                rexpTy.exp->UnEx(), NULL, NULL);
+      }
+      
       TR::PatchList *trues = new TR::PatchList(&stm->true_label, NULL),
                     *falses = new TR::PatchList(&stm->false_label, NULL);
       return TR::ExpAndTy(
@@ -653,7 +672,8 @@ TR::ExpAndTy IfExp::Translate(S::Table<E::EnvEntry> *venv,
 
     // TODO: Case e2 & e3 is not ExExp()
     TEMP::Label *t = TEMP::NewLabel(),
-                *f = TEMP::NewLabel();
+                *f = TEMP::NewLabel(),
+                *z = TEMP::NewLabel();
     TR::Cx cx = e1ExpTy.exp->UnCx();
     TR::do_patch(cx.trues, t);
     TR::do_patch(cx.falses, f);
@@ -662,16 +682,22 @@ TR::ExpAndTy IfExp::Translate(S::Table<E::EnvEntry> *venv,
                     new T::SeqStm(
                       cx.stm, 
                       new T::SeqStm(
-                        new T::LabelStm(t), 
+                        new T::LabelStm(t),
                         new T::SeqStm(
-                          new T::MoveStm(
-                            new T::TempExp(r), 
-                            e2ExpTy.exp->UnEx()), 
+                          new T::SeqStm(
+                            new T::MoveStm(
+                              new T::TempExp(r), 
+                                e2ExpTy.exp->UnEx()),
+                              new T::JumpStm(
+                                new T::NameExp(z), 
+                                new TEMP::LabelList(z, NULL))),
+                          new T::SeqStm(
                             new T::SeqStm(
                               new T::LabelStm(f), 
                               new T::MoveStm(
                                 new T::TempExp(r), 
-                                e3ExpTY.exp->UnEx()))))),
+                                e3ExpTY.exp->UnEx())),
+                            new T::LabelStm(z))))),
                     new T::TempExp(r));
     return TR::ExpAndTy(new TR::ExExp(exp), e2ExpTy.ty); 
   }
@@ -746,6 +772,9 @@ TR::ExpAndTy ForExp::Translate(S::Table<E::EnvEntry> *venv,
       || bodyExpTy.exp == INVALID_EXP()) {
     return TR::ExpAndTy(INVALID_EXP(), TY::VoidTy::Instance());
   }
+  T::Stm *initStm = new T::MoveStm(
+                      acc->access->ToExp(new T::TempExp(F::FP())), 
+                      loExpTy.exp->UnEx());
   TEMP::Label *zLabel = TEMP::NewLabel(),
               *testLabel = TEMP::NewLabel();
   T::CjumpStm *conStm = new T::CjumpStm(
@@ -766,7 +795,9 @@ TR::ExpAndTy ForExp::Translate(S::Table<E::EnvEntry> *venv,
   return TR::ExpAndTy(
           new TR::NxExp(
             new T::SeqStm(
-              new T::LabelStm(testLabel), 
+              new T::SeqStm(
+                initStm,
+                new T::LabelStm(testLabel)), 
               new T::SeqStm(
                 conStm, 
                 new T::SeqStm(
@@ -920,7 +951,7 @@ TR::Exp *FunctionDec::Translate(S::Table<E::EnvEntry> *venv,
       return INVALID_EXP();
     }
     else {
-      TEMP::Label *lab = TEMP::NewLabel();
+      TEMP::Label *lab = TEMP::NamedLabel(funList->head->name->Name());
       U::BoolList *formalBools = make_formal_bool(funDec->params);
       // add static link formal
       TR::Level *l = TR::Level::NewLevel(level, lab, new U::BoolList(true, formalBools));
@@ -938,13 +969,14 @@ TR::Exp *FunctionDec::Translate(S::Table<E::EnvEntry> *venv,
     E::FunEntry *funEntry = (E::FunEntry *)venv->Look(funDec->name);
     TR::AccessList *formalsAcc = funEntry->level->Formals();
     TY::TyList *formalsTy = funEntry->formals;
-
+    
     while (actuals) {
       // enter formal paremeters
       venv->Enter(actuals->head->name, new E::VarEntry(
-                                        formalsAcc->head, 
+                                        formalsAcc->head,
                                         formalsTy->head, 
                                         false));
+      
       formalsAcc = formalsAcc->tail;
       formalsTy = formalsTy->tail;
       actuals = actuals->tail;
@@ -1212,9 +1244,10 @@ namespace TR {
       if (!fm) {
         fm = new TR::AccessList(acc, NULL);
         fmPtr = fm;
+      } else {
+        fmPtr->tail = new TR::AccessList(acc, NULL);
+        fmPtr = fmPtr->tail;
       }
-      fmPtr->tail = new TR::AccessList(acc, NULL);
-      fmPtr = fmPtr->tail;
       al = al->tail;  
     }
     return fm;

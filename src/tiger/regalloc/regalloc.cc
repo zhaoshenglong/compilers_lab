@@ -1,5 +1,10 @@
 #include "tiger/regalloc/regalloc.h"
 
+namespace 
+{
+  
+} // namespace 
+
 namespace RA {
 
 Result RegAlloc(F::Frame* f, AS::InstrList* il) {
