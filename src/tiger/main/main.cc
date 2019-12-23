@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 
   // Lab 6: escape analysis
   // If you have implemented escape analysis, uncomment this
-  // ESC::FindEscape(absyn_root); /* set varDec's escape field */
+  ESC::FindEscape(absyn_root); /* set varDec's escape field */
 
   // Lab5: translate IR tree
   frags = TR::TranslateProgram(absyn_root);
