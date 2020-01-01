@@ -14,6 +14,7 @@ class LivenessEntry {
   setTy *inset;
   setTy *outset;
   LivenessEntry(setTy *inset, setTy *outset) : inset(inset), outset(outset) {}
+  ~LivenessEntry() {delete inset, delete outset;};
 };
 
 setTy *set_difference(setTy *leftset, TEMP::TempList *tl);
@@ -27,6 +28,7 @@ namespace LIVE {
 
 LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
   MoveList *movelist = NULL;
+  MoveList *ml = NULL;
   G::Graph<TEMP::Temp> *interferegraph = new G::Graph<TEMP::Temp>();
   LiveGraph liveness;
   liveness.graph = interferegraph;
@@ -68,6 +70,40 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
       }
     }
   }
+
+  // Produce Interference Graph
+  for (nl = nodelist; nl; nl = nl->tail) {
+    TEMP::TempList *def = FG::Def(nl->head);
+
+    if (nl->head->NodeInfo()->kind == AS::Instr::MOVE) {
+      while (def) {
+        setTy::iterator it = calculation[nl->head]->outset->begin();
+        for(; it != calculation[nl->head]->outset->end(); it++) {
+          interferegraph->AddEdge(
+                      interferegraph->NewNode(def->head), 
+                      interferegraph->NewNode(*it));
+          if (!movelist) {
+            movelist = new MoveList(interferegraph->NewNode(def->head), interferegraph->NewNode(*it), NULL);
+            ml = movelist;
+          } else {
+            ml->tail = new MoveList(interferegraph->NewNode(def->head), interferegraph->NewNode(*it), NULL);
+          }
+        }
+        def = def->tail;
+      }
+    } else {
+      while (def) {
+        setTy::iterator it = calculation[nl->head]->outset->begin();
+        for(; it != calculation[nl->head]->outset->end(); it++) {
+          interferegraph->AddEdge(
+                      interferegraph->NewNode(def->head), 
+                      interferegraph->NewNode(*it));
+        }
+        def = def->tail;
+      }
+    }
+  }
+
   return liveness;
 }
 
