@@ -122,9 +122,9 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
       TEMP::TempList *use = FG::Use(nl->head);
       setTy::iterator it = calculation[nl->head]->outset.begin();
       for(; it != calculation[nl->head]->outset.end(); it++) {
-        if(*it != FG::Use(nl->head)->head){
+        if(*it != use->head){
           G::Node<TEMP::Temp> *m = newNode(interferegraph, def->head, &node_map),
-                               *n = newNode(interferegraph, *it, &node_map);
+                              *n = newNode(interferegraph, *it, &node_map);
           if(m != n) {
             interferegraph->AddEdge(m, n);
           }
@@ -156,6 +156,16 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
     }
   }
 
+  G::NodeList<TEMP::Temp> *nodes = interferegraph->Nodes();
+  for (; nodes; nodes = nodes->tail) {
+    G::NodeList<TEMP::Temp> *succ = nodes->head->Adj();
+    printf("=================== From node: %d ==================\n", nodes->head->NodeInfo()->Int());
+    for (; succ; succ = succ->tail) {
+      printf("%d ----- %d\n", nodes->head->NodeInfo()->Int(), succ->head->NodeInfo()->Int());
+    }  
+  }
+  
+
   return liveness;
 }
 
@@ -172,10 +182,8 @@ setTy templist2set(TEMP::TempList *tl) {
   return res;
 }
 G::Node<TEMP::Temp> *newNode(G::Graph<TEMP::Temp> *g, TEMP::Temp *t, std::map<TEMP::Temp*, G::Node<TEMP::Temp>* >*m) {
-  static int cnt = 0;
   if (!(*m)[t]) {
     (*m)[t] = g->NewNode(t);
-    cnt++;
   }
   return (*m)[t];
 }

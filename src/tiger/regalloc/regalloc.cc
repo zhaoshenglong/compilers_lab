@@ -7,22 +7,20 @@
 
 namespace 
 {
-  struct edge_comp {
-    bool operator() (const Edge* lhs, const Edge* rhs) const {
-      return lhs->src->Int() < rhs->src->Int() 
-            || ( lhs->src->Int() == rhs->src->Int() 
-                && lhs->dst->Int() < rhs->dst->Int() );
-    }
-  };
-  
   class Edge{
    public:
     TEMP::Temp *src;
     TEMP::Temp *dst;
     Edge(TEMP::Temp *src, TEMP::Temp *dst) : src(src), dst(dst) {};
   };
-  
 
+  struct edge_comp {
+    bool operator() ( Edge* lhs,  Edge* rhs) const {
+      return lhs->src->Int() < rhs->src->Int() 
+            || ( lhs->src->Int() == rhs->src->Int() 
+                && lhs->dst->Int() < rhs->dst->Int() );
+    }
+  };
 
   static TEMP::TempList *L(TEMP::Temp *r1, TEMP::TempList *r2) {
     return new TEMP::TempList(r1, r2);
@@ -194,7 +192,6 @@ namespace
     LIVE::MoveList *movelist = livegraph->moves;
     G::NodeList<TEMP::Temp> *nodes = livegraph->graph->Nodes();
     AS::InstrList *ilp = il;
-    
 
     while (ilp) {
       if(ilp->head->kind == AS::Instr::MOVE) {
@@ -213,14 +210,16 @@ namespace
       }
       ilp = ilp->tail;
     }
+    nodes = livegraph->graph->Nodes();
+    
     while (nodes) {
       G::NodeList<TEMP::Temp> *adj = nodes->head->Adj();
       for (; adj; adj = adj->tail) {
         addEdge(nodes->head->NodeInfo(), adj->head->NodeInfo());
-        printf("Add edge between: %d ---- %d", nodes->head->NodeInfo()->Int(), adj->head->NodeInfo()->Int());
       }
       nodes = nodes->tail;
     }
+
     nodes = livegraph->graph->Nodes();
     while (nodes) {
       if (precolored.find(nodes->head->NodeInfo()) != precolored.end()) {
@@ -233,10 +232,11 @@ namespace
   }
 
   void addEdge(TEMP::Temp *u, TEMP::Temp *v) {
-    Edge *e;
-    e->dst = v;
-    e->src = u;
-    if (u != v && adjSet.find(e) == adjSet.end()) {
+    Edge e = Edge(u, v);
+    assert(u);
+    assert(v);
+    if (u != v && adjSet.find(&e) == adjSet.end()) {
+      printf("Add   : %d ---- %d\n", u->Int(), v->Int());
       adjSet.insert(new Edge(u, v));
       adjSet.insert(new Edge(v, u));
       if (precolored.find(u) == precolored.end()) {
@@ -357,11 +357,12 @@ namespace
         }
       }
       
+      Edge e = Edge(x, y);
       if (x == y) {
         coalescedMoves.insert(*m);
         addWorklist(x);
       } else if(precolored.find(y) != precolored.end() 
-                || adjList[x].find(y) != adjList[x].end()) {
+                || adjSet.find(&e) != adjSet.end()) {
         constrainedMoves.insert(*m);
         addWorklist(x);
         addWorklist(y);
@@ -387,9 +388,10 @@ namespace
 
   bool ok(TEMP::Temp *t, TEMP::Temp *r) {
     printf("ok\n");
+    Edge e = Edge(t, r);
     return degree[t] < K 
           || precolored.find(t) != precolored.end() 
-          || adjList[t].find(r) != adjList[t].end();
+          || adjSet.find(&e) != adjSet.end();
   }
 
   bool conservative(std::set<TEMP::Temp *> nodes) {
@@ -489,6 +491,7 @@ namespace
         }
       }
     }
+    printf("========== Select spill: %d, const: %d ============\n", victim->Int(), max_degree);
     spillWorklist.erase(victim);
     simplifyWorklist.insert(victim);
     freezeMoves(victim);

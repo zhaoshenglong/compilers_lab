@@ -98,7 +98,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
            L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\taddq\t`s0, `d0", 
            L(r, NULL), 
-           L(right, L(right, NULL)), 
+           L(right, L(r, NULL)), 
            NULL));
       return r;
     }
@@ -108,7 +108,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
            L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\tsubq\t`s0, `d0", 
            L(r, NULL), 
-           L(right, L(right, NULL)), 
+           L(right, L(r, NULL)), 
            NULL));
       return r;
     }
@@ -118,7 +118,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
            L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\timulq\t`s0, `d0", 
            L(r, NULL), 
-           L(right, L(right, NULL)), 
+           L(right, L(r, NULL)), 
            NULL));
       return r;
     }
