@@ -352,7 +352,7 @@ class ForExp : public Exp {
   bool escape;
 
   ForExp(int pos, S::Symbol *var, Exp *lo, Exp *hi, Exp *body)
-      : Exp(FOR, pos), var(var), lo(lo), hi(hi), body(body), escape(true) {}
+      : Exp(FOR, pos), var(var), lo(lo), hi(hi), body(body), escape(false) {}
 
   void Print(FILE *out, int d) const override;
 
@@ -475,7 +475,7 @@ class VarDec : public Dec {
   bool escape;
 
   VarDec(int pos, S::Symbol *var, S::Symbol *typ, Exp *init)
-      : Dec(VAR, pos), var(var), typ(typ), init(init), escape(true) {}
+      : Dec(VAR, pos), var(var), typ(typ), init(init), escape(false) {}
   void Print(FILE *out, int d) const override;
 
   void SemAnalyze(S::Table<E::EnvEntry> *venv, S::Table<TY::Ty> *tenv,
@@ -567,7 +567,7 @@ class Field {
   bool escape;
 
   Field(int pos, S::Symbol *name, S::Symbol *typ)
-      : pos(pos), name(name), typ(typ), escape(true) {}
+      : pos(pos), name(name), typ(typ), escape(false) {}
 
   void Print(FILE *out, int d) const;
 };

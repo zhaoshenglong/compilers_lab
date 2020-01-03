@@ -37,6 +37,7 @@ class InFrameAccess : public Access {
   InFrameAccess(int offset) : Access(INFRAME), offset(offset) {}
 
   T::Exp *ToExp(T::Exp *framePtr) const override {    
+    printf("In frame: %d", offset);
     return new T::MemExp(new T::BinopExp(
       T::BinOp::PLUS_OP, framePtr, new T::ConstExp(offset)
     ));
@@ -52,6 +53,7 @@ class InRegAccess : public Access {
 
   InRegAccess(TEMP::Temp* reg) : Access(INREG), reg(reg) {}
   T::Exp *ToExp(T::Exp *framePtr) const override {
+    printf("In reg access: t%d", reg->Int());
     return new T::TempExp(reg);
   }
   int getOffset() const override {
@@ -88,12 +90,13 @@ class X64Frame : public Frame {
         accPtr = al;
       }
 
-      // Move escape parameters to Frame
+      // View shift
       T::Stm *stm;
       if (cnt < ARG_REG_NUM) {
         stm = new T::MoveStm(
                 acc->ToExp(fp), 
                 new T::TempExp(argregs[cnt]()));
+        printf("Do view shift in %s for %d\n", name->Name().c_str(), formalBools->head);
       } else {
         stm = new T::MoveStm(
                 acc->ToExp(fp), 
@@ -104,12 +107,10 @@ class X64Frame : public Frame {
       }
 
       // NOTE: order here make no sense
-      if (formalBools->head) {
-        if (!saveFormalStm) {
-          saveFormalStm = new T::SeqStm(stm, new T::ExpStm(new T::ConstExp(0)));
-        } else {
-          saveFormalStm = new T::SeqStm(stm, saveFormalStm);
-        }
+      if (!saveFormalStm) {
+        saveFormalStm = new T::SeqStm(stm, new T::ExpStm(new T::ConstExp(0)));
+      } else {
+        saveFormalStm = new T::SeqStm(stm, saveFormalStm);
       }
       formalBools = formalBools->tail;
       cnt++;
@@ -177,7 +178,9 @@ TEMP::TempList *registers() {
                 new TEMP::TempList(R12(), 
                 new TEMP::TempList(R13(), 
                 new TEMP::TempList(R14(), 
-                new TEMP::TempList(R15(), NULL))))))))))))));
+                new TEMP::TempList(R15(), 
+                new TEMP::TempList(RSP(), 
+                new TEMP::TempList(RBP(), NULL))))))))))))))));
   }
   return registers;
 }
@@ -224,6 +227,22 @@ TEMP::TempList *CallerRegs() {
                   new TEMP::TempList(R11(), nullptr));
   }
   return callerSaves;
+}
+
+TEMP::TempList *CallerDefs() {
+  static TEMP::TempList *callerdef = NULL;
+  if(!callerdef) {
+    callerdef = new TEMP::TempList(R10(),
+                new TEMP::TempList(R11(),
+                new TEMP::TempList(RDI(),
+                new TEMP::TempList(RSI(),
+                new TEMP::TempList(RDX(),
+                new TEMP::TempList(RCX(),
+                new TEMP::TempList(R8(),
+                new TEMP::TempList(R9(), 
+                new TEMP::TempList(RAX(), NULL)))))))));
+  }
+  return callerdef;
 }
 
 TEMP::Map *tempMap() {
@@ -281,7 +300,7 @@ T::Stm *procEntryExit1(Frame *frame, T::Stm *stm) {
   T::Stm *restoreCalleeStm = NULL;
   for (int i = 0; i < CALLEE_REG_NUM; i++) {
     // alloc space for saving callee saved regs
-    F::Access *acc = frame->allocLocal(true);
+    F::Access *acc = frame->allocLocal(false);
     
     // generate saving statements
     if (saveCalleeStm ) {
@@ -303,13 +322,9 @@ T::Stm *procEntryExit1(Frame *frame, T::Stm *stm) {
     }
   }
 
-  return new T::SeqStm(
-          saveFormalStm, 
-          new T::SeqStm(
-            saveCalleeStm, 
-            new T::SeqStm(
-              stm, 
-              restoreCalleeStm)));
+  return new T::SeqStm(saveFormalStm, 
+          new T::SeqStm(saveCalleeStm, 
+            new T::SeqStm(stm, restoreCalleeStm)));
 }
 
 AS::InstrList *procEntryExit2(AS::InstrList *body) {

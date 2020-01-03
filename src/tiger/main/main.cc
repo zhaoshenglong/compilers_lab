@@ -26,22 +26,22 @@ void do_proc(FILE* out, F::ProcFrag* procFrag) {
   temp_map = F::tempMap();
   // Init temp_map
 
-   printf("doProc for function %s:\n", procFrag->frame->label->Name().c_str());
-   (new T::StmList(procFrag->body, nullptr))->Print(stdout);
-   printf("-------====IR tree=====-----\n");
+  printf("doProc for function %s:\n", procFrag->frame->label->Name().c_str());
+  (new T::StmList(procFrag->body, nullptr))->Print(stdout);
+  printf("-------====IR tree=====-----\n");
 
   T::StmList* stmList = C::Linearize(procFrag->body);
   //  stmList->Print(stdout);
-   printf("-------====Linearlized=====-----\n");  /* 8 */
+  printf("-------====Linearlized=====-----\n");  /* 8 */
   struct C::Block blo = C::BasicBlocks(stmList);
-   C::StmListList* stmLists = blo.stmLists;
-   for (; stmLists; stmLists = stmLists->tail) {
-   	stmLists->head->Print(stdout);
-  	printf("------====Basic block=====-------\n");
-   }
+  // C::StmListList* stmLists = blo.stmLists;
+  // for (; stmLists; stmLists = stmLists->tail) {
+    // stmLists->head->Print(stdout);
+  printf("------====Basic block=====-------\n");
+  // }
   stmList = C::TraceSchedule(blo);
-   stmList->Print(stdout);
-   printf("-------====trace=====-----\n");
+  // stmList->Print(stdout);
+  printf("-------====trace=====-----\n");
 
   // lab5&lab6: code generation
   AS::InstrList* iList = CG::Codegen(procFrag->frame, stmList); /* 9 */
@@ -53,7 +53,7 @@ void do_proc(FILE* out, F::ProcFrag* procFrag) {
   RA::Result allocation = RA::RegAlloc(procFrag->frame, iList); /* 11 */
   //  printf("----======after RA=======-----\n");
 
-  AS::Proc* proc = F::procEntryExit3(procFrag->frame, iList);
+  AS::Proc* proc = F::procEntryExit3(procFrag->frame, allocation.il);
 
   std::string procName = procFrag->frame->label->Name();
   fprintf(out, ".globl %s\n", procName.c_str());
@@ -62,7 +62,7 @@ void do_proc(FILE* out, F::ProcFrag* procFrag) {
   fprintf(out, "%s", proc->prolog.c_str());
   // body
   proc->body->Print(out,
-                    TEMP::Map::LayerMap(temp_map, TEMP::Map::Name()));
+                    TEMP::Map::LayerMap(temp_map, TEMP::Map::LayerMap(allocation.coloring, TEMP::Map::Name())));
   // epilog
   fprintf(out, "%s", proc->epilog.c_str());
   fprintf(out, ".size %s, .-%s\n", procName.c_str(), procName.c_str());
@@ -105,11 +105,14 @@ int main(int argc, char** argv) {
   parser.parse();
 
   if (!absyn_root) return 1;
-
+  
+  // absyn_root->Print(out, 1);
+  // printf("\n=======absyn=======\n");
   // Lab 6: escape analysis
   // If you have implemented escape analysis, uncomment this
   ESC::FindEscape(absyn_root); /* set varDec's escape field */
-
+  // absyn_root->Print(out, 1);
+  // printf("\n=======find escape=======\n");
   // Lab5: translate IR tree
   frags = TR::TranslateProgram(absyn_root);
   if (errormsg.anyErrors) return 1; /* don't continue */

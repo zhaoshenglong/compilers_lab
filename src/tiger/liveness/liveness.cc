@@ -1,29 +1,54 @@
 #include "tiger/liveness/liveness.h"
 #include <list>
+#include <set>
 #include <algorithm>
 #include <map>
 
-using setTy = std::list<TEMP::Temp*>;
-using setTy = std::list<TEMP::Temp*>;
+using setTy = std::set<TEMP::Temp*>;
+using setTy = std::set<TEMP::Temp*>;
 using nodeTy = G::Node<AS::Instr>*;
 
 namespace 
 {
 class LivenessEntry {
  public:
-  setTy *inset;
-  setTy *outset;
-  LivenessEntry(setTy *inset, setTy *outset) : inset(inset), outset(outset) {}
-  ~LivenessEntry() {delete inset, delete outset;};
+  setTy inset;
+  setTy outset;
+  LivenessEntry() {}
 };
 
-setTy *set_difference(setTy *leftset, TEMP::TempList *tl);
-setTy *set_union(setTy *lset, setTy *rset);
-setTy *set_union(TEMP::TempList *tl, setTy *rightset);
 
+G::Node<TEMP::Temp> *newNode(G::Graph<TEMP::Temp> *, TEMP::Temp *t, std::map<TEMP::Temp*, G::Node<TEMP::Temp>* >*);
+setTy templist2set(TEMP::TempList *tl);
 } // namespace 
 
 namespace LIVE {
+
+// debug
+void display(G::Node<AS::Instr> *node, std::set<TEMP::Temp *>  & out, TEMP::TempList *use, TEMP::TempList *def){
+  TEMP::Map *bmap=F::tempMap();
+  AS::Instr *instr=node->NodeInfo();
+  if(instr->kind==AS::Instr::LABEL){
+    ((AS::LabelInstr *)instr)->Print(stdout, bmap);
+  }else if(instr->kind==AS::Instr::MOVE){
+    ((AS::MoveInstr *)instr)->Print(stdout, bmap);
+  }else{
+    ((AS::OperInstr *)instr)->Print(stdout, bmap);
+  }
+  printf("  use: ");
+  for(TEMP::TempList *ul=use; ul && ul->head; ul=ul->tail){
+    printf("%s ", bmap->Look(ul->head)->c_str());
+  }
+  printf("  def: ");
+  for(TEMP::TempList *dl=def; dl && dl->head; dl=dl->tail){
+    printf("%s ", bmap->Look(dl->head)->c_str());
+  }
+  printf("  out: ");
+  for(std::set<TEMP::Temp *>::iterator iter=out.begin(); iter!=out.end(); iter++){
+    printf("%s ", bmap->Look(*iter)->c_str());
+  }
+  printf("\n");
+}
 
 
 LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
@@ -37,67 +62,94 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
   // Init The IN/OUT Sets
   std::map<nodeTy, LivenessEntry*> calculation;
   G::NodeList<AS::Instr> *nodelist = flowgraph->Nodes();
+
   G::NodeList<AS::Instr> *nl = nodelist;
   while (nl) {
-    calculation[nl->head] = 
-      new LivenessEntry(new setTy(), new setTy());
+    calculation[nl->head] = new LivenessEntry();
     nl = nl->tail;
   }
   
   bool finished = false;
   while (!finished) {
+    finished = true;
     for (nl = nodelist; nl; nl = nl->tail) {
-      int old_insize = calculation[nl->head]->inset->size(),
-          old_outsize = calculation[nl->head]->outset->size();
+      int old_insize = calculation[nl->head]->inset.size(),
+          old_outsize = calculation[nl->head]->outset.size();
       TEMP::TempList *use = FG::Use(nl->head),
                      *def = FG::Def(nl->head);
       
       G::NodeList<AS::Instr>*succs = nl->head->Succ();
 
       // Whether it is valid?
+      calculation[nl->head]->outset.clear();
       for (; succs; succs = succs->tail) {
-        calculation[nl->head]->outset = set_union(
+        calculation[nl->head]->outset = U::set_union(
                                           calculation[nl->head]->outset, 
                                           calculation[succs->head]->inset);
       }
-      calculation[nl->head]->inset = set_union(use, 
-            set_difference(calculation[nl->head]->outset, def));
-      if (old_insize != calculation[nl->head]->inset->size() 
-          ||old_outsize != calculation[nl->head]->outset->size()) {
+      calculation[nl->head]->inset = U::set_union(templist2set(use), 
+            U::set_difference(calculation[nl->head]->outset, templist2set(def)));
+      if (old_insize != calculation[nl->head]->inset.size() 
+          || old_outsize != calculation[nl->head]->outset.size()) {
         finished = false;
-      } else {
-        finished = true;
       }
     }
   }
+  
+  printf("Flowgraph nodes count: %d", flowgraph->nodecount);
+  for (nl = nodelist; nl; nl = nl->tail) {
+    TEMP::TempList *def = FG::Def(nl->head);
+    TEMP::TempList *use = FG::Use(nl->head);
+    display(nl->head, calculation[nl->head]->outset, use ,def);
+  }
 
+  std::map<TEMP::Temp*, G::Node<TEMP::Temp>*> node_map;
+
+  // Add edges to machine registers
+  TEMP::TempList *registers = F::registers();
+  for (TEMP::TempList *i = registers; i; i = i->tail) {
+    for (TEMP::TempList *j = i->tail; j; j = j->tail) {
+      G::Node<TEMP::Temp> *m = newNode(interferegraph, i->head, &node_map),
+                          *n = newNode(interferegraph, j->head, &node_map);
+      interferegraph->AddEdge(m, n); 
+    }
+  }
+  
   // Produce Interference Graph
   for (nl = nodelist; nl; nl = nl->tail) {
     TEMP::TempList *def = FG::Def(nl->head);
-
     if (nl->head->NodeInfo()->kind == AS::Instr::MOVE) {
-      while (def) {
-        setTy::iterator it = calculation[nl->head]->outset->begin();
-        for(; it != calculation[nl->head]->outset->end(); it++) {
-          interferegraph->AddEdge(
-                      interferegraph->NewNode(def->head), 
-                      interferegraph->NewNode(*it));
-          if (!movelist) {
-            movelist = new MoveList(interferegraph->NewNode(def->head), interferegraph->NewNode(*it), NULL);
-            ml = movelist;
-          } else {
-            ml->tail = new MoveList(interferegraph->NewNode(def->head), interferegraph->NewNode(*it), NULL);
+      TEMP::TempList *use = FG::Use(nl->head);
+      setTy::iterator it = calculation[nl->head]->outset.begin();
+      for(; it != calculation[nl->head]->outset.end(); it++) {
+        if(*it != FG::Use(nl->head)->head){
+          G::Node<TEMP::Temp> *m = newNode(interferegraph, def->head, &node_map),
+                               *n = newNode(interferegraph, *it, &node_map);
+          if(m != n) {
+            interferegraph->AddEdge(m, n);
           }
         }
-        def = def->tail;
       }
+      if (!movelist) {
+        movelist = new MoveList(newNode(interferegraph, def->head, &node_map), 
+                                newNode(interferegraph, use->head, &node_map), NULL);
+        ml = movelist;
+      } else {
+        ml->tail = new MoveList(newNode(interferegraph, def->head, &node_map), 
+                                newNode(interferegraph, use->head, &node_map), NULL);
+        ml = ml->tail;
+      }
+
+  
     } else {
       while (def) {
-        setTy::iterator it = calculation[nl->head]->outset->begin();
-        for(; it != calculation[nl->head]->outset->end(); it++) {
-          interferegraph->AddEdge(
-                      interferegraph->NewNode(def->head), 
-                      interferegraph->NewNode(*it));
+        setTy::iterator it = calculation[nl->head]->outset.begin();
+        for(; it != calculation[nl->head]->outset.end(); it++) {
+          G::Node<TEMP::Temp> *m = newNode(interferegraph, def->head, &node_map),
+                              *n = newNode(interferegraph, *it, &node_map);
+          if(m != n) {
+            interferegraph->AddEdge(m, n);
+          }
         }
         def = def->tail;
       }
@@ -111,79 +163,21 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
 
 namespace 
 {
-bool _compare(TEMP::Temp *t1, TEMP::Temp *t2) {
-  return t1->Int() < t2->Int();
-}
-setTy *_merge(setTy *leftset, setTy *rightset) {
-  // Calculate left set - right set
-  setTy::iterator leftit = leftset->begin(),
-                  rightit = rightset->begin();
-  setTy *res = new setTy();
-  int lastTemp = 0;
-  while (*leftit && *rightit) {
-    if ((*leftit)->Int() < (*rightit)->Int()) {
-      // No Duplicate
-      if((*leftit)->Int() > lastTemp) {
-        lastTemp = (*leftit)->Int();
-        res->push_back((*leftit));
-      }
-      leftit++;
-    } else {
-      if ((*rightit)->Int() > lastTemp) {
-        lastTemp = (*rightit)->Int();
-        res->push_back((*rightit));
-      }
-      rightit++;
-    }
-  }
-  while (*leftit) {
-    if ((*leftit)->Int() > lastTemp) {
-      lastTemp = (*leftit)->Int();
-      res->push_back((*leftit));
-    }
-    leftit++;
-  }
-  while (*rightit) {
-    if ((*rightit)->Int() > lastTemp) {
-      lastTemp = (*rightit)->Int();
-      res->push_back((*rightit));
-    }
-    rightit++;
-  }
-  return res;
-}
-
-setTy *_temp2list(TEMP::TempList *tl) {
-  setTy *res = new setTy();
+setTy templist2set(TEMP::TempList *tl) {
+  setTy res;
   while (tl) {
-    res->push_back(tl->head);
+    res.insert(tl->head);
     tl = tl->tail;
   }
   return res;
 }
-
-setTy *set_union(setTy *leftset, setTy *rightset) {
-  std::sort(leftset->begin(), leftset->end(), _compare);
-  std::sort(rightset->begin(), rightset->end(), _compare);
-  return _merge(leftset, rightset);
-}
-
-setTy *set_union(TEMP::TempList *tl, setTy *rightset) {
-  std::sort(rightset->begin(), rightset->end(), _compare);
-  setTy *leftset = _temp2list(tl);
-  std::sort(leftset->begin(), leftset->end(), _compare);
-  return _merge(leftset, rightset);
-}
-
-setTy *set_difference(setTy *leftset, TEMP::TempList *tl) {
-  while (tl) {
-    setTy::iterator it;
-    for ( it = leftset->begin(); *it; it++) {
-      if ((*it)->Int() == tl->head->Int()) {
-        leftset->erase(it);
-      }
-    }
-    tl = tl->tail;
+G::Node<TEMP::Temp> *newNode(G::Graph<TEMP::Temp> *g, TEMP::Temp *t, std::map<TEMP::Temp*, G::Node<TEMP::Temp>* >*m) {
+  static int cnt = 0;
+  if (!(*m)[t]) {
+    (*m)[t] = g->NewNode(t);
+    cnt++;
   }
+  return (*m)[t];
 }
+
 } // namespace 

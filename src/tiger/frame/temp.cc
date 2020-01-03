@@ -66,8 +66,11 @@ std::string *Map::Look(Temp *t) {
     return s;
   else if (this->under)
     return this->under->Look(t);
-  else
-    return nullptr;
+  else{
+    char buf[64];
+    sprintf(buf, "t%d", t->Int());
+    return new std::string(buf);
+  }
 }
 
 void Map::DumpMap(FILE *out) {

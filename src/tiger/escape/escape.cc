@@ -121,6 +121,7 @@ namespace A
       FieldList *fieldList = funList->head->params;
       while (fieldList) {
         escEnv->Enter(fieldList->head->name, new ESC::EscapeEntry(depth, &fieldList->head->escape));
+        fieldList = fieldList->tail;
       }
       funList->head->body->EscapeAnalysis(escEnv, depth);
       funList = funList->tail;

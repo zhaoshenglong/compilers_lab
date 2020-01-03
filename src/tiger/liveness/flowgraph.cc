@@ -10,9 +10,9 @@ TEMP::TempList* Def(G::Node<AS::Instr>* n) {
     // Label Instr Has No Defs
     return NULL;
   } else if (instr->kind == AS::Instr::MOVE) {
-    return static_cast<AS::MoveInstr *>(instr)->src;
+    return static_cast<AS::MoveInstr *>(instr)->dst;
   } else {
-    return static_cast<AS::OperInstr *>(instr)->src;
+    return static_cast<AS::OperInstr *>(instr)->dst;
   }
 }
 
@@ -22,9 +22,9 @@ TEMP::TempList* Use(G::Node<AS::Instr>* n) {
     // Label Instr Has NO Use
     return NULL;;
   } else if (instr->kind == AS::Instr::MOVE) {
-    return static_cast<AS::MoveInstr *>(instr)->dst;
+    return static_cast<AS::MoveInstr *>(instr)->src;
   } else {
-    return static_cast<AS::OperInstr *>(instr)->dst;
+    return static_cast<AS::OperInstr *>(instr)->src;
   }
 }
 
@@ -48,18 +48,21 @@ G::Graph<AS::Instr>* AssemFlowGraph(AS::InstrList* il, F::Frame* f) {
   // Second Pass, Add All edges to flowgraph
   AS::InstrList *cur = NULL, *next = NULL;
   G::Node<AS::Instr> *from, *to;
+  if (il->head->kind == AS::Instr::LABEL){
+    AS::LabelInstr *li = static_cast<AS::LabelInstr*>(il->head);
+    from = labelNodes[li->label];
+  } else {
+    from = flowgraph->NewNode(il->head);
+  }
+
   for (cur = il, next = cur->tail; next; cur = next, next = next->tail){
-    if (cur->head->kind == AS::Instr::LABEL){
-      AS::LabelInstr *li = static_cast<AS::LabelInstr*>(cur->head);
-      from = labelNodes[li->label];
-    }
-    from = flowgraph->NewNode(cur->head);
     if (next->head->kind == AS::Instr::LABEL) {
       AS::LabelInstr *li = static_cast<AS::LabelInstr*>(next->head);
       to = labelNodes[li->label];
+    } else {
+      to = flowgraph->NewNode(next->head);
     }
-    to = flowgraph->NewNode(next->head);
-    flowgraph->AddEdge(from, to);
+    
     if (cur->head->kind == AS::Instr::OPER) {
       AS::OperInstr *opi = static_cast<AS::OperInstr *>(cur->head);
       if (opi->jumps) {
@@ -68,21 +71,18 @@ G::Graph<AS::Instr>* AssemFlowGraph(AS::InstrList* il, F::Frame* f) {
           assert(labelNodes[ll->head]);
           flowgraph->AddEdge(from, labelNodes[ll->head]);
         }
+      } else {
+        flowgraph->AddEdge(from, to);
       }
+    } else {
+      flowgraph->AddEdge(from, to);
     }
+    from = to;
   }
 
-  // Check Last Instr
-  if (cur->head->kind == AS::Instr::OPER) {
-    AS::OperInstr *opi = static_cast<AS::OperInstr *>(cur->head);
-    if (opi->jumps) {
-      TEMP::LabelList *labels = opi->jumps->labels;
-      for (TEMP::LabelList *ll = labels; ll; ll = ll->tail) {
-        assert(labelNodes[ll->head]);
-        flowgraph->AddEdge(from, labelNodes[ll->head]);
-      }
-    }
-  }
+  // Last Instr must be empty, got from procEntryExit2
+  assert(cur->head->kind == AS::Instr::OPER
+        && static_cast<AS::OperInstr*>(cur->head)->assem.empty());
   
   return flowgraph;
 }

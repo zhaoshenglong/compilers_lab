@@ -40,11 +40,13 @@ AS::InstrList* Codegen(F::Frame* f, T::StmList* stmList) {
   }
   list = iList; 
   
-  spillAll(f, list);
+  // lab5 spillAll, remove it in lab6
+  // spillAll(f, list);
   // clear in case overlay the next frame
+  
   framesize_str = NULL;
   iList = last = NULL; 
-  return list;
+  return F::procEntryExit2(list);
 }
 
 }  // namespace CG
@@ -70,7 +72,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
     char instr[128];
     T::ConstExp *ce = static_cast<T::ConstExp *>(e);
     sprintf(instr, "\tmovq\t$%d, `d0", ce->consti);
-    emit(new AS::MoveInstr(std::string(instr), L(r, NULL), NULL));
+    emit(new AS::OperInstr(std::string(instr), L(r, NULL), NULL, NULL));
     return r;
   }
   case T::Exp::TEMP:{
@@ -79,7 +81,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
     if (te->temp == F::FP()) {
       char instr[128];
       sprintf(instr, "\tleaq\t%s(%%rsp), `d0", framesize_str->c_str());
-      emit(new AS::OperInstr(instr, L(r, NULL), NULL, NULL));
+      emit(new AS::OperInstr(instr, L(r, NULL), L(F::SP(), NULL), NULL));
       return r;
     } else {
       return te->temp;
@@ -87,6 +89,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
   }
   case T::Exp::BINOP:{
     T::BinopExp *bine = static_cast<T::BinopExp*>(e);
+    TEMP::Temp *right = munchExp(bine->right);
     switch (bine->op)
     {
     case T::BinOp::PLUS_OP:{
@@ -95,7 +98,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
            L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\taddq\t`s0, `d0", 
            L(r, NULL), 
-           L(munchExp(bine->right), NULL), 
+           L(right, L(right, NULL)), 
            NULL));
       return r;
     }
@@ -105,7 +108,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
            L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\tsubq\t`s0, `d0", 
            L(r, NULL), 
-           L(munchExp(bine->right), NULL), 
+           L(right, L(right, NULL)), 
            NULL));
       return r;
     }
@@ -115,7 +118,7 @@ static TEMP::Temp *munchExp(T::Exp *e) {
            L(munchExp(bine->left), NULL)));
       emit(new AS::OperInstr("\timulq\t`s0, `d0", 
            L(r, NULL), 
-           L(munchExp(bine->right), NULL), 
+           L(right, L(right, NULL)), 
            NULL));
       return r;
     }
@@ -155,16 +158,16 @@ static TEMP::Temp *munchExp(T::Exp *e) {
     return r;
   }
   case T::Exp::MEM:{
-    emit(new AS::MoveInstr("\tmovq\t(`s0), `d0", L(r, NULL), L(munchExp(static_cast<T::MemExp *>(e)->exp  ), NULL)));
+    emit(new AS::OperInstr("\tmovq\t(`s0), `d0", L(r, NULL), L(munchExp(static_cast<T::MemExp *>(e)->exp  ), NULL), NULL));
     return r;
   }
   case T::Exp::CALL:{
     T::CallExp *callExp = static_cast<T::CallExp *>(e);
     T::NameExp *nameExp = static_cast<T::NameExp *>(callExp->fun);
-    TEMP::TempList *calldefs = new TEMP::TempList(F::RV(), F::CallerRegs());
     TEMP::TempList *l = munchArgs(0, callExp->args);
+
     // NOTE: runtime link needs plt
-    emit(new AS::OperInstr("\tcall\t" + nameExp->name->Name() + "@plt", calldefs, l, NULL));
+    emit(new AS::OperInstr("\tcall\t" + nameExp->name->Name() + "@plt", F::CallerDefs(), L(F::RV(), l), NULL));
     emit(new AS::MoveInstr("\tmovq\t`s0, `d0", L(r, NULL), L(F::RV(), NULL)));
     return r;
   }
@@ -216,22 +219,22 @@ static void munchStm(T::Stm *s) {
     if (dste->kind == T::Exp::TEMP) {
       if (srce->kind == T::Exp::MEM) {
         // move memory data to register
-        emit(new AS::MoveInstr("\tmovq\t(`s0), `d0", 
+        emit(new AS::OperInstr("\tmovq\t(`s0), `d0", 
                 L(munchExp(dste), NULL), 
-                L(munchExp(static_cast<T::MemExp *>(srce)->exp), NULL)));
+                L(munchExp(static_cast<T::MemExp *>(srce)->exp), NULL), NULL));
       } else if (srce->kind == T::Exp::CONST){
         // move immediate to register
         char instr[128];
         sprintf(instr, "\tmovq\t$%d, `d0", static_cast<T::ConstExp *>(srce)->consti);
-        emit(new AS::MoveInstr(instr, 
+        emit(new AS::OperInstr(instr, 
                 L(munchExp(dste), NULL), 
-                NULL));
+                NULL, NULL));
       } else {
         emit(new AS::MoveInstr("\tmovq\t`s0, `d0", L(munchExp(dste), NULL), L(munchExp(srce), NULL)));
       }
     } else if(dste->kind == T::Exp::MEM) {
       T::MemExp *meme = (T::MemExp *)dste;
-      emit(new AS::MoveInstr("\tmovq\t`s0, (`s1)", NULL, L(munchExp(srce), L(munchExp(meme->exp), NULL))));
+      emit(new AS::OperInstr("\tmovq\t`s0, (`s1)", NULL, L(munchExp(srce), L(munchExp(meme->exp), NULL)), NULL));
     } else {
       // A good translate would never go here
       assert(0);
@@ -280,7 +283,7 @@ static void munchStm(T::Stm *s) {
     }
     emit(new AS::OperInstr("\tcmpq\t`s1, `s0", NULL, L(munchExp(cs->left), L(munchExp(cs->right), NULL)), NULL));
     emit(new AS::OperInstr(cjmp + cs->true_label->Name(), 
-         NULL, NULL, new AS::Targets(new TEMP::LabelList(cs->true_label, NULL))));
+         NULL, NULL, new AS::Targets(new TEMP::LabelList(cs->true_label, new TEMP::LabelList(cs->false_label, NULL)))));
     break;
   }
   case T::Stm::LABEL:{

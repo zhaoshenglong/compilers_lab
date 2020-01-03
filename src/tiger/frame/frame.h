@@ -34,6 +34,7 @@ TEMP::TempList *SpecialRegs();  // rsp, rax
 TEMP::TempList *CalleeRegs();   // rbp, rbx, r12-r15
 TEMP::TempList *ArgRegs();      // rdi, rsi, rdx, rcx, r8, r9
 TEMP::TempList *CallerRegs();   // r10, r11
+TEMP::TempList *CallerDefs();
 
 TEMP::Map *tempMap();         
 

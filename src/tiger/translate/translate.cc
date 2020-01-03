@@ -757,7 +757,7 @@ TR::ExpAndTy ForExp::Translate(S::Table<E::EnvEntry> *venv,
   }
 
   venv->BeginScope();
-  TR::Access* acc = TR::Access::AllocLocal(level, true);
+  TR::Access* acc = TR::Access::AllocLocal(level, escape);
   venv->Enter(var, new E::VarEntry(acc, TY::IntTy::Instance(), true));
 
   TEMP::Label *doneLabel = TEMP::NewLabel();
@@ -1022,7 +1022,7 @@ TR::Exp *VarDec::Translate(S::Table<E::EnvEntry> *venv, S::Table<TY::Ty> *tenv,
       return INVALID_EXP();
     }
 
-    acc = TR::Access::AllocLocal(level, true);
+    acc = TR::Access::AllocLocal(level, escape);
     venv->Enter(var, new E::VarEntry(acc, varTy, false));
   }
   else {
@@ -1030,7 +1030,7 @@ TR::Exp *VarDec::Translate(S::Table<E::EnvEntry> *venv, S::Table<TY::Ty> *tenv,
       errormsg.Error(pos, "init should not be nil without type specified");
       return INVALID_EXP();
     } else {
-      acc = TR::Access::AllocLocal(level, true);
+      acc = TR::Access::AllocLocal(level, escape);
       venv->Enter(var, new E::VarEntry(acc, initExpTy.ty, false));
     }
   }
@@ -1148,7 +1148,7 @@ static U::BoolList *make_formal_bool(A::FieldList *params) {
   if (!params) {
     return NULL;
   } else {
-    return new U::BoolList(true, make_formal_bool(params->tail));
+    return new U::BoolList(params->head->escape, make_formal_bool(params->tail));
   }
 }
 static T::ExpList *make_actual_list(S::Table<E::EnvEntry> *venv,
