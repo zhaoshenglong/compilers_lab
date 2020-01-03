@@ -105,7 +105,32 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
 
   std::map<TEMP::Temp*, G::Node<TEMP::Temp>*> node_map;
 
-  // Add edges to machine registers
+  // Add edges to machine registersbool finished = false;
+  while (!finished) {
+    finished = true;
+    for (nl = nodelist; nl; nl = nl->tail) {
+      int old_insize = calculation[nl->head]->inset.size(),
+          old_outsize = calculation[nl->head]->outset.size();
+      TEMP::TempList *use = FG::Use(nl->head),
+                     *def = FG::Def(nl->head);
+      
+      G::NodeList<AS::Instr>*succs = nl->head->Succ();
+
+      // Whether it is valid?
+      calculation[nl->head]->outset.clear();
+      for (; succs; succs = succs->tail) {
+        calculation[nl->head]->outset = U::set_union(
+                                          calculation[nl->head]->outset, 
+                                          calculation[succs->head]->inset);
+      }
+      calculation[nl->head]->inset = U::set_union(templist2set(use), 
+            U::set_difference(calculation[nl->head]->outset, templist2set(def)));
+      if (old_insize != calculation[nl->head]->inset.size() 
+          || old_outsize != calculation[nl->head]->outset.size()) {
+        finished = false;
+      }
+    }
+  }
   TEMP::TempList *registers = F::registers();
   for (TEMP::TempList *i = registers; i; i = i->tail) {
     for (TEMP::TempList *j = i->tail; j; j = j->tail) {

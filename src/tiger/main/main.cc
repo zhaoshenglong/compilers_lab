@@ -62,7 +62,8 @@ void do_proc(FILE* out, F::ProcFrag* procFrag) {
   fprintf(out, "%s", proc->prolog.c_str());
   // body
   proc->body->Print(out,
-                    TEMP::Map::LayerMap(temp_map, TEMP::Map::Name()));
+                    TEMP::Map::LayerMap(temp_map, 
+                      TEMP::Map::LayerMap(allocation.coloring, TEMP::Map::Name())));
   // epilog
   fprintf(out, "%s", proc->epilog.c_str());
   fprintf(out, ".size %s, .-%s\n", procName.c_str(), procName.c_str());

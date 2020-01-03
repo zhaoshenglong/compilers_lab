@@ -25,6 +25,14 @@ namespace
   static TEMP::TempList *L(TEMP::Temp *r1, TEMP::TempList *r2) {
     return new TEMP::TempList(r1, r2);
   }
+  void printTemps(std::set<TEMP::Temp*> temps) {
+    std::set<TEMP::Temp*>::iterator it = temps.begin();
+    printf("========= Print TEMPS ========= \n");
+    for (; it != temps.end(); it++) {
+      printf("t%d -> ", (*it)->Int());
+    }
+    printf("\n");
+  }
 
   static int K = 16;
   static std::set<TEMP::Temp *> precolored;
@@ -38,15 +46,15 @@ namespace
   static std::list<TEMP::Temp *> selectStack;
   static std::set<TEMP::Temp *> selectStackSet;
 
-  static std::set<AS::Instr *> coalescedMoves;
-  static std::set<AS::Instr *> constrainedMoves;
-  static std::set<AS::Instr *> frozenMoves;
-  static std::set<AS::Instr *> worklistMoves;
-  static std::set<AS::Instr *> activeMoves;
+  static std::set<LIVE::MoveList *> coalescedMoves;
+  static std::set<LIVE::MoveList *> constrainedMoves;
+  static std::set<LIVE::MoveList *> frozenMoves;
+  static std::set<LIVE::MoveList *> worklistMoves;
+  static std::set<LIVE::MoveList *> activeMoves;
 
   static std::map<TEMP::Temp *, int> degree;
   static std::map<TEMP::Temp *, TEMP::Temp *> alias;
-  static std::map<TEMP::Temp *, std::set<AS::Instr *> > moveList;
+  static std::map<TEMP::Temp *, std::set<LIVE::MoveList *> > moveList;
   static std::set<Edge *, edge_comp> adjSet;
   static std::map<TEMP::Temp *, std::set<TEMP::Temp *> > adjList;
   static std::map<TEMP::Temp *, TEMP::Temp *> color;
@@ -58,7 +66,7 @@ namespace
   void addEdge(TEMP::Temp *src, TEMP::Temp *dst);
   void makeWorklist();
   std::set<TEMP::Temp *> adjacent(TEMP::Temp *n);
-  std::set<AS::Instr  *> nodeMoves(TEMP::Temp *n);
+  std::set<LIVE::MoveList *> nodeMoves(TEMP::Temp *n);
   bool moveRelated(TEMP::Temp *);
   
   void simplify();
@@ -80,6 +88,7 @@ namespace
 
   void rewriteProgram(G::Graph<AS::Instr> *flowgraph, F::Frame *f, AS::InstrList * il);
 
+  bool movesDuplicate(std::set<LIVE::MoveList *>, LIVE::MoveList *);
   static void insertAfter(AS::InstrList *il, AS::InstrList *nl);
   static void insertBefore(AS::InstrList *il, AS::InstrList *nl);
   TEMP::TempList *getDefs(AS::Instr *);
@@ -191,27 +200,25 @@ namespace
     printf("build\n");
     LIVE::MoveList *movelist = livegraph->moves;
     G::NodeList<TEMP::Temp> *nodes = livegraph->graph->Nodes();
-    AS::InstrList *ilp = il;
 
-    while (ilp) {
-      if(ilp->head->kind == AS::Instr::MOVE) {
-        worklistMoves.insert(ilp->head);
-        AS::MoveInstr *mi = static_cast<AS::MoveInstr*>(ilp->head);
-        TEMP::TempList *stl = mi->src,
-                       *dtl = mi->dst;
-        while (stl) {
-          moveList[stl->head].insert(ilp->head);
-          stl = stl->tail;
-        }
-        while (dtl) {
-          moveList[dtl->head].insert(ilp->head);
-          dtl = dtl->tail;
-        }
-      }
-      ilp = ilp->tail;
-    }
-    nodes = livegraph->graph->Nodes();
+    // add movelist
     
+    while (movelist) {
+      TEMP::Temp *src = movelist->src->NodeInfo();
+      TEMP::Temp *dst = movelist->dst->NodeInfo();
+      if (!movesDuplicate(worklistMoves, movelist)) {
+        worklistMoves.insert(movelist);
+      }
+      if (!movesDuplicate(moveList[src], movelist)) {
+        moveList[src].insert(movelist);
+      }
+      if (!movesDuplicate(moveList[dst], movelist)) {
+        moveList[dst].insert(movelist);
+      }
+    }
+    
+    // add edges
+    nodes = livegraph->graph->Nodes();
     while (nodes) {
       G::NodeList<TEMP::Temp> *adj = nodes->head->Adj();
       for (; adj; adj = adj->tail) {
@@ -220,6 +227,7 @@ namespace
       nodes = nodes->tail;
     }
 
+    // add initials
     nodes = livegraph->graph->Nodes();
     while (nodes) {
       if (precolored.find(nodes->head->NodeInfo()) != precolored.end()) {
@@ -227,6 +235,7 @@ namespace
       } else {
         initial.insert(nodes->head->NodeInfo());
       }
+      alias[nodes->head->NodeInfo()] = nodes->head->NodeInfo();
       nodes = nodes->tail;
     }
   }
@@ -270,7 +279,7 @@ namespace
                     U::set_union(selectStackSet, coalescedNodes));
   }
 
-  std::set<AS::Instr *> nodeMoves(TEMP::Temp *n) {
+  std::set<LIVE::MoveList *> nodeMoves(TEMP::Temp *n) {
     return U::set_intersect(moveList[n], 
                     U::set_union(activeMoves, worklistMoves));
   }
@@ -317,8 +326,8 @@ namespace
     printf("enableMoves\n");
     std::set<TEMP::Temp *>::iterator it = nodes.begin();
     for (; it != nodes.end(); it++) {
-      std::set<AS::Instr *> nodemoves = nodeMoves(*it);
-      std::set<AS::Instr *>::iterator nit = nodemoves.begin();
+      std::set<LIVE::MoveList *> nodemoves = nodeMoves(*it);
+      std::set<LIVE::MoveList *>::iterator nit = nodemoves.begin();
       for (; nit != nodemoves.end(); nit++) {
         if (activeMoves.find(*nit) != activeMoves.end()) {
           worklistMoves.insert(*nit);
@@ -331,19 +340,19 @@ namespace
   void coalesce() {
     printf("coalesce\n");
     if (!worklistMoves.empty()) {
-      std::set<AS::Instr *>::iterator m = worklistMoves.begin();
-      AS::MoveInstr *mm = static_cast<AS::MoveInstr *>(*m);
-      TEMP::Temp *x = mm->src->head;
-      TEMP::Temp *y = mm->dst->head;
+      std::set<LIVE::MoveList *>::iterator m = worklistMoves.begin();
+      TEMP::Temp *x = (*m)->src->NodeInfo();
+      TEMP::Temp *y = (*m)->dst->NodeInfo();
       x = getAlias(x);
       y = getAlias(y);
+      printf("Coalesce x: %d, y: %d\n", x->Int(), y->Int());
 
       TEMP::Temp *t;
       if (precolored.find(y) != precolored.end()) {
         // make sure precolored y is in the first place
         t = x;
         x = y;
-        y = t; 
+        y = t;
       }
       worklistMoves.erase(*m);
 
@@ -453,11 +462,10 @@ namespace
 
   void freezeMoves(TEMP::Temp *u) {
     printf("freezeMoves\n");
-    std::set<AS::Instr *> moves = nodeMoves(u);
-    std::set<AS::Instr *>::iterator it = moves.begin();
+    std::set<LIVE::MoveList *> moves = nodeMoves(u);
+    std::set<LIVE::MoveList *>::iterator it = moves.begin();
     for ( ; it != moves.end(); it++) {
-      AS::MoveInstr *m = static_cast<AS::MoveInstr *>(*it);
-      TEMP::Temp *x = m->src->head, *y = m->dst->head;
+      TEMP::Temp *x = (*it)->src->NodeInfo(), *y = (*it)->dst->NodeInfo();
       TEMP::Temp *v;
       if (getAlias(y) == getAlias(u)) {
         v = getAlias(x);
@@ -465,8 +473,8 @@ namespace
         v = getAlias(y);
       }
       printf("Erase activemoves\n");
-      activeMoves.erase(m);
-      frozenMoves.insert(m);
+      activeMoves.erase(*it);
+      frozenMoves.insert(*it);
       printf("ERASED activmoves\n");
       if (nodeMoves(v).empty() && degree[v] < K) {
         freezeWorklist.erase(v);
@@ -505,11 +513,10 @@ namespace
       printf("pop stack\n");
       if (selectStackSet.find(n) != selectStackSet.end()) {
         selectStackSet.erase(n);
-      } else {
-        printf("set is null!\n");
       }
       std::set<TEMP::Temp *> okColors = getColors();
-
+      
+      printTemps(okColors);
       std::set<TEMP::Temp *> adj = adjList[n];
       std::set<TEMP::Temp *>::iterator it = adj.begin();
 
@@ -517,8 +524,10 @@ namespace
         std::set<TEMP::Temp *> tmp = U::set_union(coloredNodes, precolored);
         if (tmp.find(getAlias(*it)) != tmp.end()) {
           okColors.erase(color[getAlias(*it)]);
+
         }
       }
+      printTemps(okColors);
       if(okColors.empty()) {
         printf("Insert into spilledNodes]n");
         spilledNodes.insert(n);
@@ -577,7 +586,7 @@ namespace
           TEMP::Temp *t = TEMP::Temp::NewTemp();
           char instr[128];
           sprintf(instr, load_template, f->getFramesizeStr()->c_str(), allocations[use->head]);
-          AS::OperInstr *ms = new AS::OperInstr(instr, L(t, L(F::SP(), NULL)), NULL, NULL);
+          AS::OperInstr *ms = new AS::OperInstr(instr, L(t, NULL),  L(F::SP(), NULL), NULL);
           assert(prev);
           insertAfter(prev, new AS::InstrList(ms, NULL));
           use->head = t;
@@ -635,5 +644,18 @@ namespace
     for (; il; il = il->tail) {
       il->head->Print(stdout, TEMP::Map::LayerMap(F::tempMap(), TEMP::Map::Name()));
     }
+  }
+
+  bool movesDuplicate(std::set<LIVE::MoveList *> moves, LIVE::MoveList * t) {
+    std::set<LIVE::MoveList *>::iterator it = moves.begin();
+
+    bool found = false;
+    for (; it != moves.end(); it++) {
+      if((*it)->dst == t->dst && (*it)->src == t->src
+          || ((*it)->dst == t->src && (*it)->src == t->dst)) {
+        return true;
+      }
+    }
+    return false;
   }
 } // namespace 
