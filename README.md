@@ -92,11 +92,14 @@ Notes are below.
     * initial
     * alias
     * ...
+### Related chapters
+* `Chapter 10`
+* `Chapter 11`
 
 ## Bugs in my implementation
 1. In `Escape analysis`, I ignored the analysis of arguments in `callExp`.
 2. I did not deal with the case in which arguments are more than 6.
-3. Some other bugs ... (I don't know where are they, but they must exist.)
+3. Some other bugs ... (I don't know where they are, but they must exist.)
 
 
 
