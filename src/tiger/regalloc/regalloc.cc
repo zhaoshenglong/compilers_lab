@@ -323,13 +323,14 @@ namespace
 
       TEMP::Temp *t;
       if (precolored.find(y) != precolored.end()) {
-        // make sure precolored y is in the first place
+        // make sure precolored is in the first place if exists.
         t = x;
         x = y;
         y = t;
       }
       worklistMoves.erase(*m);
 
+      // George algorithm
       bool test = true;
       std::set<TEMP::Temp*> adj = adjacent(y);
       std::set<TEMP::Temp*>::iterator it = adj.begin();
@@ -342,10 +343,12 @@ namespace
       
       Edge e = Edge(x, y);
       if (x == y) {
+        // degree not change
         coalescedMoves.insert(*m);
         addWorklist(x);
       } else if(precolored.find(y) != precolored.end() 
                 || adjSet.find(&e) != adjSet.end()) {
+        // degree not change, simply remove MOVE[x->y]
         constrainedMoves.insert(*m);
         addWorklist(x);
         addWorklist(y);
@@ -356,11 +359,14 @@ namespace
         combine(x, y);
         addWorklist(x);
       } else {
+        // The move is not prepared for combination
         activeMoves.insert(*m);
       }
     }
   }
 
+  // Whenever coalesce two nodes, we need to chekc if that can be add to 
+  // simplyfy worklist.
   void addWorklist(TEMP::Temp *u) {
     if(precolored.find(u) == precolored.end() && !moveRelated(u) && degree[u] < K) {
       freezeWorklist.erase(u);
@@ -368,6 +374,7 @@ namespace
     }
   }
 
+  // George algorithm, precolored chcking is not necessary I think
   bool ok(TEMP::Temp *t, TEMP::Temp *r) {
     Edge e = Edge(t, r);
     return degree[t] < K 
@@ -375,6 +382,7 @@ namespace
           || adjSet.find(&e) != adjSet.end();
   }
 
+  // Brigg algorithm
   bool conservative(std::set<TEMP::Temp *> nodes) {
     int k = 0;
     std::set<TEMP::Temp *>::iterator it = nodes.begin();
@@ -410,7 +418,9 @@ namespace
     std::set<TEMP::Temp *> adj = adjacent(v);
     std::set<TEMP::Temp *>::iterator it = adj.begin();
     for (; it != adj.end(); it++) {
+      // connevt u & *it for each v->it
       addEdge(*it, u);
+      // decremet degree, since v is removed
       decrementDegree(*it);
     }
     if (degree[u] >= K && freezeWorklist.find(u) != freezeWorklist.end()) {
@@ -449,6 +459,7 @@ namespace
   }
   
   void selectSpill() {
+    // select the highest degree node
     std::set<TEMP::Temp *>::iterator it = spillWorklist.begin();
     TEMP::Temp *victim = *it;
     int max_degree = degree[*it];
