@@ -1,5 +1,9 @@
 # Change Logs
 
+## tiger-compiler-2019-fall(1.0.4)
+- Add all labs answer
+- Add Docs
+
 ## tiger-compiler-2019-fall(1.0.3)
 
 - Complement missing function in canon.
