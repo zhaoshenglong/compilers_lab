@@ -14,6 +14,7 @@ namespace
     Edge(TEMP::Temp *src, TEMP::Temp *dst) : src(src), dst(dst) {};
   };
 
+  // Override default set comparator, used in adjSet
   struct edge_comp {
     bool operator() ( Edge* lhs,  Edge* rhs) const {
       return lhs->src->Int() < rhs->src->Int() 
@@ -24,14 +25,6 @@ namespace
 
   static TEMP::TempList *L(TEMP::Temp *r1, TEMP::TempList *r2) {
     return new TEMP::TempList(r1, r2);
-  }
-  void printTemps(std::set<TEMP::Temp*> temps) {
-    std::set<TEMP::Temp*>::iterator it = temps.begin();
-    printf("========= Print TEMPS ========= \n");
-    for (; it != temps.end(); it++) {
-      printf("t%d -> ", (*it)->Int());
-    }
-    printf("\n");
   }
 
   static int K = 16;
@@ -93,7 +86,6 @@ namespace
   static void insertBefore(AS::InstrList *il, AS::InstrList *nl);
   TEMP::TempList *getDefs(AS::Instr *);
   TEMP::TempList *getUses(AS::Instr *);
-  void print(AS::InstrList *);
 } // namespace 
 
 namespace RA {
@@ -110,9 +102,7 @@ Result RegAlloc(F::Frame* f, AS::InstrList* il) {
 
   for (; it != color.end(); it++) {
     coloring->Enter(it->first, registers->Look(it->second));
-    printf("color[%d] -> %s\n", it->first->Int(), registers->Look(it->second)->c_str());
   }
-  
   
   while (il->head->kind == AS::Instr::MOVE &&
         !coloring->Look(static_cast<AS::MoveInstr*>(il->head)->src->head)
@@ -143,10 +133,6 @@ namespace
 {
   void initWorklist() {
     precolored = getColors();
-    for (std::set<TEMP::Temp *>::iterator it = precolored.begin(); it != precolored.end(); it++) {
-      printf("t%d -> %s\n", (*it)->Int(), F::tempMap()->Look((*it))->c_str());
-    }
-    
     initial.clear();
     simplifyWorklist.clear();
     freezeWorklist.clear();
@@ -175,8 +161,6 @@ namespace
   void mainProcedure(RA::Result *res, F::Frame* f, AS::InstrList* il) {
     G::Graph<AS::Instr> *flowgraph = FG::AssemFlowGraph(il, f);
     G::NodeList<AS::Instr> *n = flowgraph->Nodes();
-    
-    print(il);
 
     LIVE::LiveGraph livegraph = LIVE::Liveness(flowgraph);
     build(&livegraph, il);
@@ -197,12 +181,10 @@ namespace
   }
 
   void build(LIVE::LiveGraph *livegraph, AS::InstrList *il) {
-    printf("build\n");
     LIVE::MoveList *movelist = livegraph->moves;
     G::NodeList<TEMP::Temp> *nodes = livegraph->graph->Nodes();
 
     // add movelist
-    
     while (movelist) {
       TEMP::Temp *src = movelist->src->NodeInfo();
       TEMP::Temp *dst = movelist->dst->NodeInfo();
@@ -245,7 +227,6 @@ namespace
     assert(u);
     assert(v);
     if (u != v && adjSet.find(&e) == adjSet.end()) {
-      printf("Add   : %d ---- %d\n", u->Int(), v->Int());
       adjSet.insert(new Edge(u, v));
       adjSet.insert(new Edge(v, u));
       if (precolored.find(u) == precolored.end()) {
@@ -260,7 +241,6 @@ namespace
   }
 
   void makeWorklist() {
-    printf("makeWorklist\n");
     std::set<TEMP::Temp *>::iterator it = initial.begin();
     for (; it != initial.end(); it++) {
       if (degree[*it] >= K) {
@@ -289,14 +269,12 @@ namespace
   }
 
   void simplify() {
-    printf("Simplify\n");
     if (!simplifyWorklist.empty() ) {
       std::set<TEMP::Temp *>::iterator n = simplifyWorklist.begin();
       TEMP::Temp *t = *n;
       simplifyWorklist.erase(n);
       selectStack.push_back(t);
       selectStackSet.insert(t);
-      printf("push back %d\n", (t)->Int());
 
       std::set<TEMP::Temp *> adj = adjacent(t);
       std::set<TEMP::Temp *>::iterator it = adj.begin();
@@ -307,7 +285,6 @@ namespace
   }
 
   void decrementDegree(TEMP::Temp *m) {
-    printf("DecrementDegree\n");
     degree[m] = degree[m] - 1;
     if (degree[m] == K - 1) {
       std::set<TEMP::Temp *>mset;
@@ -323,7 +300,6 @@ namespace
   }
 
   void enableMoves(std::set<TEMP::Temp *> nodes) {
-    printf("enableMoves\n");
     std::set<TEMP::Temp *>::iterator it = nodes.begin();
     for (; it != nodes.end(); it++) {
       std::set<LIVE::MoveList *> nodemoves = nodeMoves(*it);
@@ -338,14 +314,12 @@ namespace
   }
 
   void coalesce() {
-    printf("coalesce\n");
     if (!worklistMoves.empty()) {
       std::set<LIVE::MoveList *>::iterator m = worklistMoves.begin();
       TEMP::Temp *x = (*m)->src->NodeInfo();
       TEMP::Temp *y = (*m)->dst->NodeInfo();
       x = getAlias(x);
       y = getAlias(y);
-      printf("Coalesce x: %d, y: %d\n", x->Int(), y->Int());
 
       TEMP::Temp *t;
       if (precolored.find(y) != precolored.end()) {
@@ -388,7 +362,6 @@ namespace
   }
 
   void addWorklist(TEMP::Temp *u) {
-    printf("addWorklist\n");
     if(precolored.find(u) == precolored.end() && !moveRelated(u) && degree[u] < K) {
       freezeWorklist.erase(u);
       simplifyWorklist.insert(u);
@@ -396,7 +369,6 @@ namespace
   }
 
   bool ok(TEMP::Temp *t, TEMP::Temp *r) {
-    printf("ok\n");
     Edge e = Edge(t, r);
     return degree[t] < K 
           || precolored.find(t) != precolored.end() 
@@ -404,7 +376,6 @@ namespace
   }
 
   bool conservative(std::set<TEMP::Temp *> nodes) {
-    printf("conservative\n");
     int k = 0;
     std::set<TEMP::Temp *>::iterator it = nodes.begin();
     for (; it != nodes.begin(); it++) {
@@ -421,11 +392,9 @@ namespace
   }
 
   void combine(TEMP::Temp *u, TEMP::Temp *v ) {
-    printf("combine\n");
     if (freezeWorklist.find(v) != freezeWorklist.end()) {
       freezeWorklist.erase(v);
     } else {
-      printf("combine spill");
       if (spillWorklist.find(v) != spillWorklist.end()) {
         spillWorklist.erase(v);
       }
@@ -451,7 +420,6 @@ namespace
   }
 
   void freeze() {
-    printf("freeze\n");
     if (!freezeWorklist.empty()) {
       std::set<TEMP::Temp *>::iterator it = freezeWorklist.begin();
       freezeWorklist.erase(it);
@@ -461,7 +429,6 @@ namespace
   }
 
   void freezeMoves(TEMP::Temp *u) {
-    printf("freezeMoves\n");
     std::set<LIVE::MoveList *> moves = nodeMoves(u);
     std::set<LIVE::MoveList *>::iterator it = moves.begin();
     for ( ; it != moves.end(); it++) {
@@ -472,20 +439,16 @@ namespace
       } else {
         v = getAlias(y);
       }
-      printf("Erase activemoves\n");
       activeMoves.erase(*it);
       frozenMoves.insert(*it);
-      printf("ERASED activmoves\n");
       if (nodeMoves(v).empty() && degree[v] < K) {
         freezeWorklist.erase(v);
-        printf("erase freezeworklist\n");
         simplifyWorklist.insert(v);
       }
     }
   }
   
   void selectSpill() {
-    printf("SelectSpill\n");
     std::set<TEMP::Temp *>::iterator it = spillWorklist.begin();
     TEMP::Temp *victim = *it;
     int max_degree = degree[*it];
@@ -499,24 +462,19 @@ namespace
         }
       }
     }
-    printf("========== Select spill: %d, const: %d ============\n", victim->Int(), max_degree);
     spillWorklist.erase(victim);
     simplifyWorklist.insert(victim);
     freezeMoves(victim);
   }
 
   void assignColors() {
-    printf("selectStack empty: %d, %d\n", selectStackSet.empty(), selectStack.empty());
     while (!selectStack.empty()) {
       TEMP::Temp *n = selectStack.back();
       selectStack.pop_back();
-      printf("pop stack\n");
       if (selectStackSet.find(n) != selectStackSet.end()) {
         selectStackSet.erase(n);
       }
       std::set<TEMP::Temp *> okColors = getColors();
-      
-      printTemps(okColors);
       std::set<TEMP::Temp *> adj = adjList[n];
       std::set<TEMP::Temp *>::iterator it = adj.begin();
 
@@ -524,18 +482,14 @@ namespace
         std::set<TEMP::Temp *> tmp = U::set_union(coloredNodes, precolored);
         if (tmp.find(getAlias(*it)) != tmp.end()) {
           okColors.erase(color[getAlias(*it)]);
-
         }
       }
-      printTemps(okColors);
       if(okColors.empty()) {
-        printf("Insert into spilledNodes]n");
         spilledNodes.insert(n);
       } else {
         coloredNodes.insert(n);
         std::set<TEMP::Temp *>::iterator c = okColors.begin();
         color[n] = *c;
-
       }
     }
     std::set<TEMP::Temp *>::iterator it = coalescedNodes.begin(); 
@@ -550,9 +504,7 @@ namespace
     for ( ; it != spilledNodes.end(); it++) {
       f->allocLocal(true);
       allocations[*it] = f->getSize();
-      printf("Allocate for spillednodes: %d\n", (*it)->Int());
     }
-    printf("Rewrite program\n");
     const char *store_template = "\tmovq\t`s0, (%s - %d)(%%rsp)";
     const char *load_template = "\tmovq\t(%s - %d)(%%rsp), `d0";
 
@@ -565,16 +517,13 @@ namespace
       while (def) {
         if (allocations[def->head]) {
           TEMP::Temp *t = TEMP::Temp::NewTemp();
-          printf("Found def:, def->head: %d, off: %d\n", def->head->Int(), allocations[def->head]);
           // insert store instr;
           char instr[128];
           sprintf(instr, store_template, f->getFramesizeStr()->c_str(), allocations[def->head]);
           AS::OperInstr *ms = new AS::OperInstr(instr, NULL, L(t, L(F::SP(), NULL)), NULL);
           insertAfter(i, new AS::InstrList(ms, NULL));
           def->head = t;
-
-          printf("insert asfter");
-          i->head->Print(stdout, TEMP::Map::LayerMap(F::tempMap(), TEMP::Map::Name()));
+          // i->head->Print(stdout, TEMP::Map::LayerMap(F::tempMap(), TEMP::Map::Name()));
           i = i->tail;
         }
         def = def->tail;
@@ -590,15 +539,13 @@ namespace
           assert(prev);
           insertAfter(prev, new AS::InstrList(ms, NULL));
           use->head = t;
-          printf("insert asfter");
-          prev->head->Print(stdout, TEMP::Map::LayerMap(F::tempMap(), TEMP::Map::Name()));
+          // prev->head->Print(stdout, TEMP::Map::LayerMap(F::tempMap(), TEMP::Map::Name()));
         }
         use = use->tail;
       }        
       prev = i;
       i = i->tail;
     }
-    print(il);
   }
 
   static void insertAfter(AS::InstrList *il,  AS::InstrList *nl) {
@@ -636,13 +583,6 @@ namespace
       return static_cast<AS::MoveInstr *>(i)->src;
     } else {
       return static_cast<AS::OperInstr *>(i)->src;
-    }
-  }
-
-  void print(AS::InstrList *il) {
-    printf("Printing\n");
-    for (; il; il = il->tail) {
-      il->head->Print(stdout, TEMP::Map::LayerMap(F::tempMap(), TEMP::Map::Name()));
     }
   }
 

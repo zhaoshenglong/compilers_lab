@@ -2,7 +2,6 @@
 #include<map>
 
 namespace FG {
-// using InstrNodeT = G::Node<AS::Instr> *;
 
 TEMP::TempList* Def(G::Node<AS::Instr>* n) {
   AS::Instr *instr = n->NodeInfo();
@@ -19,7 +18,7 @@ TEMP::TempList* Def(G::Node<AS::Instr>* n) {
 TEMP::TempList* Use(G::Node<AS::Instr>* n) {
   AS::Instr *instr = n->NodeInfo();
   if(instr->kind == AS::Instr::LABEL) {
-    // Label Instr Has NO Use
+    // Label Instr Has No Use
     return NULL;;
   } else if (instr->kind == AS::Instr::MOVE) {
     return static_cast<AS::MoveInstr *>(instr)->src;

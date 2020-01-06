@@ -24,32 +24,6 @@ setTy templist2set(TEMP::TempList *tl);
 
 namespace LIVE {
 
-// debug
-void display(G::Node<AS::Instr> *node, std::set<TEMP::Temp *>  & out, TEMP::TempList *use, TEMP::TempList *def){
-  TEMP::Map *bmap=F::tempMap();
-  AS::Instr *instr=node->NodeInfo();
-  if(instr->kind==AS::Instr::LABEL){
-    ((AS::LabelInstr *)instr)->Print(stdout, bmap);
-  }else if(instr->kind==AS::Instr::MOVE){
-    ((AS::MoveInstr *)instr)->Print(stdout, bmap);
-  }else{
-    ((AS::OperInstr *)instr)->Print(stdout, bmap);
-  }
-  printf("  use: ");
-  for(TEMP::TempList *ul=use; ul && ul->head; ul=ul->tail){
-    printf("%s ", bmap->Look(ul->head)->c_str());
-  }
-  printf("  def: ");
-  for(TEMP::TempList *dl=def; dl && dl->head; dl=dl->tail){
-    printf("%s ", bmap->Look(dl->head)->c_str());
-  }
-  printf("  out: ");
-  for(std::set<TEMP::Temp *>::iterator iter=out.begin(); iter!=out.end(); iter++){
-    printf("%s ", bmap->Look(*iter)->c_str());
-  }
-  printf("\n");
-}
-
 
 LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
   MoveList *movelist = NULL;
@@ -69,6 +43,7 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
     nl = nl->tail;
   }
   
+  // Compute live in out 
   bool finished = false;
   while (!finished) {
     finished = true;
@@ -95,42 +70,10 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
       }
     }
   }
-  
-  printf("Flowgraph nodes count: %d", flowgraph->nodecount);
-  for (nl = nodelist; nl; nl = nl->tail) {
-    TEMP::TempList *def = FG::Def(nl->head);
-    TEMP::TempList *use = FG::Use(nl->head);
-    display(nl->head, calculation[nl->head]->outset, use ,def);
-  }
 
-  std::map<TEMP::Temp*, G::Node<TEMP::Temp>*> node_map;
 
-  // Add edges to machine registersbool finished = false;
-  while (!finished) {
-    finished = true;
-    for (nl = nodelist; nl; nl = nl->tail) {
-      int old_insize = calculation[nl->head]->inset.size(),
-          old_outsize = calculation[nl->head]->outset.size();
-      TEMP::TempList *use = FG::Use(nl->head),
-                     *def = FG::Def(nl->head);
-      
-      G::NodeList<AS::Instr>*succs = nl->head->Succ();
-
-      // Whether it is valid?
-      calculation[nl->head]->outset.clear();
-      for (; succs; succs = succs->tail) {
-        calculation[nl->head]->outset = U::set_union(
-                                          calculation[nl->head]->outset, 
-                                          calculation[succs->head]->inset);
-      }
-      calculation[nl->head]->inset = U::set_union(templist2set(use), 
-            U::set_difference(calculation[nl->head]->outset, templist2set(def)));
-      if (old_insize != calculation[nl->head]->inset.size() 
-          || old_outsize != calculation[nl->head]->outset.size()) {
-        finished = false;
-      }
-    }
-  }
+  std::map<TEMP::Temp*, G::Node<TEMP::Temp>*> node_map;   // Store TEMP -> NODE, Record already allocated nodes
+  // Add edges to machine registers 
   TEMP::TempList *registers = F::registers();
   for (TEMP::TempList *i = registers; i; i = i->tail) {
     for (TEMP::TempList *j = i->tail; j; j = j->tail) {
@@ -181,16 +124,15 @@ LiveGraph Liveness(G::Graph<AS::Instr>* flowgraph) {
     }
   }
 
-  G::NodeList<TEMP::Temp> *nodes = interferegraph->Nodes();
-  for (; nodes; nodes = nodes->tail) {
-    G::NodeList<TEMP::Temp> *succ = nodes->head->Adj();
-    printf("=================== From node: %d ==================\n", nodes->head->NodeInfo()->Int());
-    for (; succ; succ = succ->tail) {
-      printf("%d ----- %d\n", nodes->head->NodeInfo()->Int(), succ->head->NodeInfo()->Int());
-    }  
-  }
-  
-
+  // debug
+  // G::NodeList<TEMP::Temp> *nodes = interferegraph->Nodes();
+  // for (; nodes; nodes = nodes->tail) {
+  //   G::NodeList<TEMP::Temp> *succ = nodes->head->Adj();
+  //   printf("=================== From node: %d ==================\n", nodes->head->NodeInfo()->Int());
+  //   for (; succ; succ = succ->tail) {
+  //     printf("%d ----- %d\n", nodes->head->NodeInfo()->Int(), succ->head->NodeInfo()->Int());
+  //   }  
+  // }
   return liveness;
 }
 
